@@ -62,7 +62,7 @@ This decision seems to boil down to whether or not grouping of parts of the grap
 
 Grouping, or creating reusable functions, might be done by allowing the user to denote a subgraph by an identifier, such that the subgraph can be inserted in multiple places without duplicating the code for it.
 
-This could be realized as inserting a subgraph as a single node in to the main graph, which would mean, that edges can go to this node and away from this node. This, in turn, requires the subgraph to have input and output nodes. Already we can see that this is starting to look like the source code will have a main graph and some graphs that represent functions inside this main graph.
+This could be realized as inserting a subgraph as a single node in to the main graph, which would mean, that edges can go to this node and away from this node. This, in turn, requires the subgraph to have input and output nodes. Already we can see that this is starting to look like the source code will have a main graph and some graphs that represent functions to be used inside this main graph.
 
 Now that I'm thinking about it, if we already went that far, why not allow recursion? After all, the bottom case could be an empty stream, since there are no other conditional structures. There is only stream or no stream (and the contents of the stream of course).
 
@@ -74,9 +74,27 @@ I don't think that the language itself has a lot of advantages, but the things t
 
 ### Special nodes
 
-#### Input
+One goal of the streamgraph language is to abstract the interaction with unnamed pipes, inputs, outputs, etc. away, in favor of representing the pure flow of the data. This means (at least in my interpretation), that the language should inherently be hostile to side effects. Since the nodes run arbitrary shell commands, we can't stop them, but we can call side effects bad streamgraph coding style. The script should have one or multiple inputs and a single output that do all the file system interaction. If the thing you want to achieve cannot be modelled within these constraints, don't use streamgraph for this project (one exception might be interaction with a database).
 
-#### Output
+All input and output will therefore be happening though some special nodes, that don't access the file system directly, the sg core will do the file system accessing. This has the advantage, that the code can be reused if the filenames change, without adjusting some string constants in the script.
+
+#### IO
+
+As hinted at above, the script doesn't know the names of the files that will be accessed. The script represents actions on some general data and shouldn't be concerned with how we get this data.
+
+In general, a script can have two types of input. One is stdin, the other is command line arguments. sg is mainly about applying the same transformation to a stream of data multiple times, taking the data from a different source every time, therefore, the command line arguments will only be filenames. While it is very well possible, that a script takes multiple files as input, the general case will be, that the script takes only one file as input, or reads all of its data directly from stdin.
+
+If we have multiple inputs, we use multiple corresponding input nodes, where input node i relates to the file mentioned in the i-th command line argument. It should also be possible to still read from stdin in addition to reading from the files mentioned in the command line arguments. Thus, we have two kinds of input node:
+* A `stdin` node that can only be used once.
+* A `file-input` node that can be used multiple times but has to be numbered, where the number represents the position of the desired filename in the command line arguments.
+
+If there is only one input source (probably the average case), the input should be accepted from either stdin or as a filename in a command line argument. This could be modelled by the user, by creating nodes for both inputs and concatenating the streams, but this is such a common case that this should probably be modelled in the language. If only one input node is given, be it `stdin` or `file-input`, the sg core should make the script accept the input to come from either end.
+
+#### Split, merge
+
+The whole point of having a graph is so that we can process data in parallel streams, and merge them back together afterwards. This means that at some point we have to 
+
+### 
 
 ## Known facts
 
