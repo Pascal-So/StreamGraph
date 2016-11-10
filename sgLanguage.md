@@ -2,13 +2,9 @@
 
 The StreamGraph language is a small language that will be used to represent the stream graph. It will later be converted to a bash script that includes the core of the StreamGraph language, together with the graph setup.
 
-## Design phase thoughts
-
-These notes are not meant to be a definitive guide to the StreamGraph language, they are mostly a place for me to ramble on about different possibilities and decisions about the language design. They might also be useful if I ever decide to do a write-up on the language and the process of creating it.
-
 These notes are as much about the language itself as they are about the entire concept of creating a stream graph.
 
-### Nodes and Edges
+## Nodes and Edges
 
 There are two basic entities in StreamGraph, nodes and edges, where the nodes represent operations on the data, and the edges represent the flow of the data. It's not always clear whether an edge is, from the users's point of view, more strongly associated with the node it's leading in to (consider a join block where the user's thinking is "I want to get input from there and there") or the node it's leaving (user: "I want to send this stream to stdout"). Probably, the view is not constant for one edge, as the edge is considered once with the sending node and once with the receiving node. It is therefore best to not directly write it in either place. The user should think mainly about the nodes themselves, connections between them are something to be considered later on.
 
@@ -58,7 +54,7 @@ Now the above is not very nice, because we can't have a node called `nodes` (a v
 
 This decision seems to boil down to whether or not grouping of parts of the graph for reuse will be a feature worth adding at some point in the future (maybe even already with the initial version). So let's think about grouping first.
 
-### Grouping
+## Grouping
 
 Grouping, or creating reusable functions, might be done by allowing the user to denote a subgraph by an identifier, such that the subgraph can be inserted in multiple places without duplicating the code for it.
 
@@ -72,13 +68,13 @@ But now that we're dealing with a language that allows for blocks of codes to be
 
 I don't think that the language itself has a lot of advantages, but the things that can be built on top of this language, such as a visual editor. The power of this language lies in the visual representation of the graph, that makes it much easier for the user to see the flow of data. A visual editor might store some metadata like the position of the individual nodes (this could be done by special tags in inline comments), but other than that, the underlying project file for a visual StreamGraph editor would be virtually equivalent to pure StreamGraph files.
 
-### Special nodes
+## Special nodes
 
 One goal of the streamgraph language is to abstract the interaction with named pipes, inputs, outputs, etc. away, in favor of representing the pure flow of the data. This means (at least in my interpretation), that the language should inherently be hostile to side effects. Since the nodes run arbitrary shell commands, we can't stop them, but we can call side effects bad streamgraph coding style. The script should have one or multiple inputs and a single output that do all the file system interaction. If the thing you want to achieve cannot be modelled within these constraints, don't use streamgraph for this project (one exception might be interaction with a database).
 
 All input and output will therefore be happening though some special nodes, that don't access the file system directly, the sg core will do the file system accessing. This has the advantage, that the code can be reused if the filenames change, without adjusting some string constants in the script.
 
-#### IO
+### IO
 
 As hinted at above, the script doesn't know the names of the files that will be accessed. The script represents actions on some general data and shouldn't be concerned with how we get this data.
 
@@ -94,9 +90,11 @@ A similar setup might be possible for the ouput. The user could, when running th
 
 This would result in a nice symmetry between how the input and output is handled. The only downside is that there might arise some confusion from how a single IO node can differently, depending on whether a file name argument is present or not. This could be fixed by defining a preferred form. Let's define, that, if this switching IO functionality is to be used (I really need a cool name for this concept), the single node should be the stdin/stdout node, not a filein/fileout node. Using a filein/fileout node for context dependent IO should still be allowed, but maybe print out a compiler warning that stdin/stdout nodes are preferred if only one input, respectively output node is used.
 
-As for stderr: Each node can have some stderr ouput, but the graph should probably just ignore this, so that it will be displayed in the terminal when running the graph. 
+As for stderr: Each node can have some stderr ouput, but the graph should probably just ignore this, so that it will be displayed in the terminal when running the graph.
 
-#### Split
+Groups need an input and output as well, and they should be limited to only a single input and a single output. It would make sense to reuse the stdin/stdout nodes here in order to not introduce even more node types, and that way, a group could quickly be converted to a main program and vice versa.
+
+### Split
 
 The whole point of having a graph is so that we can process data in parallel streams, and merge them back together afterwards. This means that at some point we have to have nodes with multiple outputs.
 
@@ -110,7 +108,7 @@ To ensure preformance, the `.inv` shadow node would only be created if the user 
 
 Streams could also be split within the lines, using a tool like `cut`. This should also be possible to invert and create a shadow node from it, but might require a bit more trickery. Since `cut` might take fields from the middle of the line, the inverse would be the part around it. This could just be evaluated separately and concatenated to form .. oh never mind, cut has a `--complement` option.. (might not be entirely porable though, requires GNU cut afaik)
 
-#### Merge
+### Merge
 
 For merging back together, there are, again, two options. Merging within the line and just concatenating the streams. Actually it would be useful if every node could concatenate streams by just sending multiple pipes there. The order could not be guaranteed though, but for most purposes this should be fine. If the order needs to be set, the user could prepend a string to each of the streams and sort by the first field after merging to get the desired arrangement.
 
@@ -141,8 +139,128 @@ where `h` stands for horizontally. As demonstrated here, the system should be ab
 
 Now the question arises, what should be done with an edge streaming to the node without a suffix? Probably just display a warning when compiling, but allow it anyway, just as if `.h0` / `.v0` had been written. If two clashing suffixes or suffixes of vertical and horizontal type appear at the same time, the compiler will display an error message.
 
-### 
+## Nodes again
 
-## Known facts
+Nodes can either be bash statements or a group instance. The whole point of groups is to have multiple instances, we therefore need to instance them so we can pipe data through the individual instances independently (this is gonna be an important part in the implementation. How efficiently can this be implemented?).
 
-Comments are denoted with the character `#` and can also be inlined. In other words, the interpreter ignores the rest of the line after encountering this character. This alignes with the bash comment character, which makes this very useful. 
+Thus we need a syntax to differentiate between a group instance and a simple node, otherwise we can't have group names that are equal to bash commands. Initially, I was going to separate the node name from the command with a colon, this could be altered to use the colon syntax only for bash command nodes, and some other character for instantiation, for example a dash.
+
+```
+someNode: sed 's/a/b/'
+otherNode- groupName
+```
+
+Once the group has been instanciated in a node, the node can be used like every other node.
+
+The IO nodes might just have yet another separator, so that the input and output nodes can also be named with semantics in mind:
+
+```
+fileForDoingThingA/ 1
+fileForDoingThingB/ 2
+mainInput/ stdin
+```
+
+This would make the node `fileForDoingThingA` read from the file specified by the first command line argument, `fileForDoingThingB` would read from the filename in the second argument. `mainInput` would read from stdin.
+
+The slash used as a separator is quite pretty actually, as it reminds of the filesystem, which is exactly the purpose of this kind of node.
+
+Output nodes could use the backslash as a separator, although this would bring the number of separators up to 4 and the user might get confused between slash and backslash. Actually, they could both use the forward slash and be differentiated like this:
+
+```
+fileForReading/ infile 1
+input/ stdin
+fileForWriting/ outfile 1
+output/ stdout
+```
+
+Actually, it's questionable whether stdin and stdout should be defined explicitly. They will be used almost always, so we could add them by default. Let's call them `input` and `output`. This has the effect that the concept for switching input changes a bit. If no file input node is defined but a file input is given, then this file will be used as stdin and the actual stdin will be ignored. Same goes for the output. This means that no nodes named `input` or `output` can be created, but that would be bad practice anyway.
+
+Since nodes can have shadow nodes that use dots in the name, the language shouldn't allow the user to add any special characters in the node name. Allowed are therefore only letters (upper- and lowercase) and digits.
+
+## Edges again
+
+Edges should specify the node sending data in to the edge (the node where this edge is outgoing), and the node it's leading in to.
+
+```
+someNode otherNode
+```
+
+Shadow nodes can only be accessed from edges, the syntax for accessing them should look like this:
+
+```
+someNode.inv otherNode.v1
+```
+
+This requires `someNode` to be a `grep` or a `cut` node. `otherNode` will concat this stream with another stream from an edge also leading in to `otherNode`.
+
+### Groups again
+
+Nested groups might be useful for namespaces, so they should be allowed, even if they get rarely ever used. Groups can only be instanciated by nodes that are defined on the same level as the group, or by nodes in the group or in any of its descendant groups.
+
+This is what allows for recursion, with a node reaching out to a group an arbitrary amount of layers up. Recursion will stop, once the stream is empty, because the group does not get opened. If a maximum recursion depth is reached
+
+## Syntax
+
+Now that some of the details are a bit clearer, it should be possible to decide on a syntax. The language should allow for nodes and edges in the main part and also in groups. Nested groups are allowed, the elements that can appear at every level are therefore:
+
+* Node
+* Edge
+* Group
+* Comment
+
+Nodes and edges make up the main part of an sg program, they should therefore be as easy to write as possible, which means, no long prefixes required. An option would be to have prefixes anyway, but allow the user to write them in a short form consisting only of the first letter, similar to GDB:
+
+```
+group aGroup{
+    node someNode: (node code)
+    node otherNode- (group name)
+    edge someNode otherNode
+}
+```
+
+or written in the short form:
+
+```
+g aGroup{
+    n someNode: (node code)
+    n otherNode- (group name)
+    e someNode otherNode
+}
+```
+
+The indentation should be optional.
+
+As an example, a sg source file might look like this:
+
+```
+g moveSecondFieldToEnd{
+    # nodes
+    n extract2: cut -d" " -f2
+
+    # edges
+    e input extract2
+    e extract2 output.h0
+    e extract2.inv output.h1
+}
+
+# nodes
+n rearrange- moveSecondFieldToEnd
+n stuffToAppend/ infile 1
+n sort: sort # note how a node can have the same name as a command
+
+# edges
+e input rearrange
+e rearrange output.v0
+e stuffToAppend sort
+e sort output.v1
+```
+
+Stream merging can be done on the output, as seen in this example.
+
+## Coding style
+
+I'm not sure yet whether separating the statements in to node and edges sections makes sense for larger projects, as one might lose track of the edges or nodes.
+
+Due to the nature of the language, there will almost always be more edges than nodes, which might seem like unnecessary verbosity, but this makes the user think about the flow of data more than the details of the individual actions, which is sort of the goal of the language.
+
+Nodes that don't have a path to an output (should) have no effect, as side effects are discouraged. These nodes will be deleted and therefore never executed, if one places side effects in such nodes, they are thus not guaranteed to run.
