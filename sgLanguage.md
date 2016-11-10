@@ -255,6 +255,8 @@ e stuffToAppend sort
 e sort output.v1
 ```
 
+This will take the second field from every line on stdin and move it to the end of the line, and then append the sorted version of the file on command line argument 1. The result will be printed to stdout.
+
 Stream merging can be done on the output, as seen in this example.
 
 ## Coding style
