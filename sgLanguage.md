@@ -96,7 +96,7 @@ This would result in a nice symmetry between how the input and output is handled
 
 As for stderr: Each node can have some stderr ouput, but the graph should probably just ignore this, so that it will be displayed in the terminal when running the graph. 
 
-#### Split, merge
+#### Split
 
 The whole point of having a graph is so that we can process data in parallel streams, and merge them back together afterwards. This means that at some point we have to have nodes with multiple outputs.
 
@@ -104,12 +104,45 @@ One way of having multiple outputs is to simply duplicate outputs. This should b
 
 Another way to split the output would be by sending some of the lines to one outgoing edge, the other lines to the other edge. This should already be possible by using thee nodes. One that simply passes the data through, which will have an outgoing edge to both of the other nodes each. The other two nodes would be a `grep` node and a `grep -v` node respectively. This does represent some overhead though, and would be nicer to solve in a single node with two outputs. The two outputs would in this case be labelled, as we need a way to separate the positive and negative output.
 
-Since rewriting grep is neither an option nor a sensible thing to do, the option arises to add functionality to `grep` nodes. Say a user writes a grep node, the system could add a second, virtual node in the background. This node could be named with a special suffix to the node. Let's disallow dots in node names, which would mean we can add suffixes after a dot that the user can then still refer to in outgoing edges. A grep node called `findWarnings` would create a shadow node called `findWarnings.inv` that adds `-v` to the grep command, without the user having to write any additional sg code.
+Since rewriting grep is neither an option nor a sensible thing to do, the option arises to add functionality to `grep` nodes. Say a user writes a grep node, the system could add a second, virtual node in the background. This node could be named with a special suffix to the node. Let's disallow dots in node names, which would mean we can add suffixes after a dot that the user can then still refer to in outgoing edges. A grep node called `findWarnings` would create a shadow node called `findWarnings.inv` that adds `-v` to the grep command, without the user having to write any additional sg code. Dealing with `-A` and `-B` might be tricky though..
 
 To ensure preformance, the `.inv` shadow node would only be created if the user is actually referencing it. Actually, this is relevant for more than just performance, beause if we have a node writing data in to a named pipe but nothing is reading from that pipe, the process might not terminate.
+
+Streams could also be split within the lines, using a tool like `cut`. This should also be possible to invert and create a shadow node from it, but might require a bit more trickery. Since `cut` might take fields from the middle of the line, the inverse would be the part around it. This could just be evaluated separately and concatenated to form .. oh never mind, cut has a `--complement` option.. (might not be entirely porable though, requires GNU cut afaik)
+
+#### Merge
+
+For merging back together, there are, again, two options. Merging within the line and just concatenating the streams. Actually it would be useful if every node could concatenate streams by just sending multiple pipes there. The order could not be guaranteed though, but for most purposes this should be fine. If the order needs to be set, the user could prepend a string to each of the streams and sort by the first field after merging to get the desired arrangement.
+
+Merging within the line might be tricky, since the order is important. Actually, this could be solved with shadow nodes, where the user adds a suffix to the destination node of the edge. A suffix like `.after` could make sg join the streams line by line, the unsuffixed input being the base input and the `.after` stream being appended to every line of the base stream.
+
+Since we can't ask the users to always use the same field separator, as this could be a space, a tab, a semicolon, a comma, etc., we have to add a way for the user to tell sg the field separator to be used for merging inline. This might be done with a command line option when running the script, such as `-d$'\t'`. Either space or tab should be the default, as these should be the most common options.
+
+A difficulty arises when there are more than two streams to be merged. If we however replace the suffixes with something more flexible, this should work. The inline merge suffix could be anything that will then be merged in lexicographical order. This might even be possible to use with stream concatenation merging (I will call this vertical merging from now on, while inline merging is horizontal merging).
+
+The virtual node suffixes could be the command for the merging direction (vertical or horizontal), and a number, by which the streams will be sorted before merging. The virtual node suffixes would therefore look something like this in the edge syntax:
+
+```
+sourceA mergingNode.v0
+sourceB mergingNode.v1
+```
+
+This would concatenate the streams from sourceA and sourceB, where the data from sourceA would occur first in the merged stream. The `v` stands for vertical.
+
+Analogously, the syntax for edges to a node where the streams would be merged horizontally would look like this:
+
+```
+sourceA mergingNode.h0
+sourceB mergingNode.h1
+sourceC mergingNode.h2
+```
+
+where `h` stands for horizontally. As demonstrated here, the system should be able to join an arbitrary number of streams.
+
+Now the question arises, what should be done with an edge streaming to the node without a suffix? Probably just display a warning when compiling, but allow it anyway, just as if `.h0` / `.v0` had been written. If two clashing suffixes or suffixes of vertical and horizontal type appear at the same time, the compiler will display an error message.
 
 ### 
 
 ## Known facts
 
-Comments are denoted with the character `#` and can also be inlined. In other words, the interpreter ignores the rest of the line after encountering this character. This alignes with the bash comment character, which makes this very useful.
+Comments are denoted with the character `#` and can also be inlined. In other words, the interpreter ignores the rest of the line after encountering this character. This alignes with the bash comment character, which makes this very useful. 
