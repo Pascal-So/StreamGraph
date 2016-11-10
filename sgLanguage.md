@@ -74,7 +74,7 @@ I don't think that the language itself has a lot of advantages, but the things t
 
 ### Special nodes
 
-One goal of the streamgraph language is to abstract the interaction with unnamed pipes, inputs, outputs, etc. away, in favor of representing the pure flow of the data. This means (at least in my interpretation), that the language should inherently be hostile to side effects. Since the nodes run arbitrary shell commands, we can't stop them, but we can call side effects bad streamgraph coding style. The script should have one or multiple inputs and a single output that do all the file system interaction. If the thing you want to achieve cannot be modelled within these constraints, don't use streamgraph for this project (one exception might be interaction with a database).
+One goal of the streamgraph language is to abstract the interaction with named pipes, inputs, outputs, etc. away, in favor of representing the pure flow of the data. This means (at least in my interpretation), that the language should inherently be hostile to side effects. Since the nodes run arbitrary shell commands, we can't stop them, but we can call side effects bad streamgraph coding style. The script should have one or multiple inputs and a single output that do all the file system interaction. If the thing you want to achieve cannot be modelled within these constraints, don't use streamgraph for this project (one exception might be interaction with a database).
 
 All input and output will therefore be happening though some special nodes, that don't access the file system directly, the sg core will do the file system accessing. This has the advantage, that the code can be reused if the filenames change, without adjusting some string constants in the script.
 
@@ -90,9 +90,23 @@ If we have multiple inputs, we use multiple corresponding input nodes, where inp
 
 If there is only one input source (probably the average case), the input should be accepted from either stdin or as a filename in a command line argument. This could be modelled by the user, by creating nodes for both inputs and concatenating the streams, but this is such a common case that this should probably be modelled in the language. If only one input node is given, be it `stdin` or `file-input`, the sg core should make the script accept the input to come from either end.
 
+A similar setup might be possible for the ouput. The user could, when running the script, pass multiple output files as arguments (for example with `-o somefile.txt`), and there would still be stdout. We could therefore have two kinds of output nodes, one for file output and one for stdout, where, again, if the user provides only one output node, whatever its kind, the output would go to stdout if no `-o` argument is given and to the file otherwise.
+
+This would result in a nice symmetry between how the input and output is handled. The only downside is that there might arise some confusion from how a single IO node can differently, depending on whether a file name argument is present or not. This could be fixed by defining a preferred form. Let's define, that, if this switching IO functionality is to be used (I really need a cool name for this concept), the single node should be the stdin/stdout node, not a filein/fileout node. Using a filein/fileout node for context dependent IO should still be allowed, but maybe print out a compiler warning that stdin/stdout nodes are preferred if only one input, respectively output node is used.
+
+As for stderr: Each node can have some stderr ouput, but the graph should probably just ignore this, so that it will be displayed in the terminal when running the graph. 
+
 #### Split, merge
 
-The whole point of having a graph is so that we can process data in parallel streams, and merge them back together afterwards. This means that at some point we have to 
+The whole point of having a graph is so that we can process data in parallel streams, and merge them back together afterwards. This means that at some point we have to have nodes with multiple outputs.
+
+One way of having multiple outputs is to simply duplicate outputs. This should be possible with all nodes, by simply adding two outgoing edges from this node. The outgoing edges should duplicate the stream.
+
+Another way to split the output would be by sending some of the lines to one outgoing edge, the other lines to the other edge. This should already be possible by using thee nodes. One that simply passes the data through, which will have an outgoing edge to both of the other nodes each. The other two nodes would be a `grep` node and a `grep -v` node respectively. This does represent some overhead though, and would be nicer to solve in a single node with two outputs. The two outputs would in this case be labelled, as we need a way to separate the positive and negative output.
+
+Since rewriting grep is neither an option nor a sensible thing to do, the option arises to add functionality to `grep` nodes. Say a user writes a grep node, the system could add a second, virtual node in the background. This node could be named with a special suffix to the node. Let's disallow dots in node names, which would mean we can add suffixes after a dot that the user can then still refer to in outgoing edges. A grep node called `findWarnings` would create a shadow node called `findWarnings.inv` that adds `-v` to the grep command, without the user having to write any additional sg code.
+
+To ensure preformance, the `.inv` shadow node would only be created if the user is actually referencing it. Actually, this is relevant for more than just performance, beause if we have a node writing data in to a named pipe but nothing is reading from that pipe, the process might not terminate.
 
 ### 
 
