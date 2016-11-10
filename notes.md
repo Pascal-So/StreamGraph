@@ -36,7 +36,7 @@
 * join
 
 ## Implementation
-* in general, create 1 unnamed pipe per block
+* in general, create 1 named pipe per block
   use multiple pipes for special split blocks.
 * in later version, concat linear node chains to one command
 
