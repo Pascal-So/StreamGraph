@@ -30,15 +30,21 @@ struct Io_node : Node{
 struct Instance_node : Node{
     Ast* group;
 
-    std::string groupname;
+    std::string group_name;
     // used while parsing. The group can
     // only be linked once the entire file
     // has been parsed.
 };
 
 struct Edge : Ast_element{
-    Node source;
-    Node destination;
+    Node* source;
+    Node* destination;
+    
+    std::string source_name;
+    std::string destination_name;
+    // used while parsing. The nodes can
+    // only be linked once the entire file
+    // has been parsed.
 };
 
 Ast* parse_file(std::ifstream &infile);

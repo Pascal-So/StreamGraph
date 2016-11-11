@@ -11,6 +11,23 @@
  */
 
 
+// this is used for the error messages
+int line_number;
+bool has_error;
+
+void log(std::string type, std::string message){
+    std::cerr<<type << " on line " << line_number << ": " << message <<"\n";
+}
+
+void log_error(std::string message){
+    log("ERROR", message);
+    has_error = true;
+}
+void log_warning(std::string message){
+    log("WARNING", message);
+}
+
+
 std::string trimWhitespace(std::string line){
     // strip leading whitespace
     auto strBegin = line.find_first_not_of(" \t");
@@ -35,11 +52,39 @@ std::string stringToLower(std::string & in){
 }
 
 Node* parse_node(std::istringstream & line){
-    
+    std::string name;
+    std::string command;
+
+    // maybe use regex here
+    // probably
 }
 
 Edge* parse_edge(std::istringstream & line){
+    std::string start;
+    std::string end;
 
+    bool ok = (line >> start) && (line >> end);
+
+    if (! ok){
+	log_error("Incorrect edge syntax.\n"
+		  "    Expected: e <node_name> <node_name>.\n"
+		  "    Found: e " + start);
+	return NULL;
+    }
+
+    std::string tmp;
+    if(line >> tmp){
+	log_error("Incorrect edge syntax.\n"
+		  "    Expected: e <node_name> <node_name>.\n    "
+		  "    Found: e " + start + " " + end + " " + tmp);
+	return NULL;
+    }
+
+    Edge* e = new Edge();
+    e->source_name = start;
+    e->destination_name = end;
+
+    return e;
 }
 
 
@@ -51,7 +96,11 @@ Ast* ast_parse(std::ifstream & infile, std::stack<Ast*> & current_scope){
 
     std::string line = "";
 
+    line_number = -1;
+    has_error = false;
+    
     while(getline(infile, line)){
+	++line_number;
 	
 	line = trimWhitespace(line);
 
@@ -73,16 +122,25 @@ Ast* ast_parse(std::ifstream & infile, std::stack<Ast*> & current_scope){
 	iss >> type;
 
 	type = stringToLower(type);
+
+	Ast_element* nextElement;
 	
 	if(type=="node" || type == "n"){
-	    
+	    nextElement = parse_node(iss);
 	}else if (type == "edge" || type == "e"){
-
+	    nextElement = parse_edge(iss);
 	}else if (type == "group" || type == "g"){
-
+	    
 	}else{
-	    //error
+	    log_error("Incorrect syntax:\n"
+		      "    Expected: either 'node', 'edge' or 'group'"
+		      "    Found: " + type);
 	}
+
+	current_scope.top()->elements.push_back(nextElement);
+
+
+	
 	
     }
 }
@@ -101,4 +159,8 @@ Ast* parse_file(std::ifstream &infile){
     current_scope.push(root);
     
     root = ast_parse(infile, current_scope);
+
+    if(has_error){
+	// some errors have happened.
+    }
 }
