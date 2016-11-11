@@ -1,6 +1,7 @@
 #include<bits/stdc++.h>
 #include<boost/filesystem.hpp>
 #include "argparse.h"
+#include "sg-ast.h"
 
 using namespace std;
 
@@ -20,67 +21,23 @@ using namespace std;
  */
 
 
-// set up structs that will represent the abstract syntax tree
 
-struct Ast_element{
-    
-};
-
-struct Ast{
-    vector<Ast_element*> elements;
-};
-
-struct Group : Ast_element{
-    string name;
-    Ast* subtree;
-};
-
-struct Node : Ast_element{
-    string name;
-};
-
-struct Bash_node : Node{
-    string command;
-};
-
-struct Io_node : Node{
-    bool input;
-    int file_number;
-};
-
-struct Instance_node : Node{
-    Group* group;
-};
-
-struct Edge : Ast_element{
-    Node source;
-    Node destination;
-};
-
-
-// main parser function
-// assumes that ifstream is ok
-Ast parse_file(ifstream &infile){
-    while(getline(infile, line)){
-	
-    }
-}
 
 
 
 void info_message(){
-    cerr<<"sg - compiler for the sg language\n";
-    cerr<<"Pascal Sommer, November 2016\n\n";
+    std::cerr<<"sg - compiler for the sg language\n";
+    std::cerr<<"Pascal Sommer, November 2016\n\n";
 }
 
 // print the help message
 void help_message(){
-    cerr<<"Usage: sg inputfile.sg [-o outputfile.sh]\n";
-    cerr<<"    -o, --output   The .sh file where the resulting\n";
-    cerr<<"                   script should be saved. Defaults\n";
-    cerr<<"                   to <input file name>.sh.\n";
-    cerr<<"    -h, --help     Print this help message.\n";
-    cerr<<"\n";
+    std::cerr<<"Usage: sg inputfile.sg [-o outputfile.sh]\n";
+    std::cerr<<"    -o, --output   The .sh file where the resulting\n";
+    std::cerr<<"                   script should be saved. Defaults\n";
+    std::cerr<<"                   to <input file name>.sh.\n";
+    std::cerr<<"    -h, --help     Print this help message.\n";
+    std::cerr<<"\n";
 }
 
 template <typename T, typename U>
@@ -113,7 +70,7 @@ int main(int argc, char * argv[]){
     if(key_exists(parsed_options, 0)){
 	input_file = parsed_options[0];
     }else{ //no input file was given
-	cerr<<"ERROR: No input file given\n";
+	std::cerr<<"ERROR: No input file given\n";
 	help_message();
 	return 1;
     }
@@ -147,7 +104,7 @@ int main(int argc, char * argv[]){
     // open input file
     ifstream infile (input_file);
     if( ! infile.is_open()){
-	cerr<<"ERROR: Can't open input file";
+	std::cerr<<"ERROR: Can't open input file";
 	help_message();
 	return 1;
     }
@@ -155,13 +112,13 @@ int main(int argc, char * argv[]){
     // open output file
     ofstream outfile (output_file);
     if( ! outfile.is_open()){
-	cerr<<"ERROR: Can't open output file";
+	std::cerr<<"ERROR: Can't open output file";
 	help_message();
 	return 1;
     }
 
     // parse input file
-    Ast tree = parse_file(infile);
+    Ast* tree = parse_file(infile);
 
 
     
