@@ -1,0 +1,38 @@
+e input filter
+
+n filter: grep Accessed
+e filter extract
+n extract: cut -c38- | sed 's/^,/NULL,/'
+
+e extract getIP
+e extract getAccountNr
+
+g stripComma{
+  e input strip
+  n strip: sed 's/,//'
+  e strip output
+}
+
+n getAccountNr: cut -d" " -f4
+
+n getIP: cut -d" " -f5
+
+n cleanAccountNr- stripComma
+n cleanIP- stripComma
+
+e getAccountNr cleanAccountNr
+e cleanAccountNr buildQuery
+
+e getIP cleanIP
+
+n buildQuery: sed 's/^(.*)$/select gl.name, u.name from users u join global_locations gl on u.global_location_id = gl.id where u.id = $1/'
+e buildQuery runQuery
+n runQuery: mysql -Nu ziviapps -pziviapps ziviapps
+
+
+e runQuery unique.h2
+e cleanIP unique.h1
+
+n unique: sort| uniq
+
+e unique output
