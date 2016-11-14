@@ -25,6 +25,11 @@ struct Bash_node : Node{
 struct Io_node : Node{
     bool input;
     int file_number;
+    
+    std::string io_instruction;
+    // used while parsing. The exact io
+    // instruction will be processed once
+    // the entire file has been parsed.
 };
 
 struct Instance_node : Node{
