@@ -230,7 +230,11 @@ Ast* ast_parse(std::ifstream & infile, std::stack<Ast*> & current_scope){
 }
 
 
-void link_tree(Ast* ast){
+void link_tree(Ast* ast, std::map<string, Ast_element*> variables){
+    // get variables in current scope
+    for(auto e:ast){
+	
+    }
     
 }
 
