@@ -3,7 +3,8 @@ import re
 
 # the sg language is context sensitive, so let me attempt some weird hack:
 # the function lex() takes an argument `context`, which stores a dict of
-# context flags. Tadaaa, we now have a CSG :)
+# context flags. This will then be mutated while lexing. Tadaaa, we now
+# have a CSG :)
 
 def lex(characters, token_exprs, context):
 
@@ -31,20 +32,26 @@ def lex(characters, token_exprs, context):
     return tokens
 
 
+context = {}
+context['bash_node'] = False
+
+# The token expressions are 4-tuples:
+# (regex, token name, applicable in context, sets context)
 
 token_exprs = [
-    (r'[ \n\t]+',   None),
-    (r'#[^\n]*',    None),
+    (r'[ \n\t]+',   None, {}, {}),
+    (r'#[^\n]*',    None, {}, {}),
 
-    (r':',          'Reserved'),
-    (r'-',          'Reserved'),
-    (r'/',          'Reserved'),
-    (r'{',          'Reserved'),
-    (r'}',          'Reserved'),
-    (r'node',       'Reserved'),
-    (r'edge',       'Reserved'),
-    (r'group',      'Reserved'),
-    (r'n',          'Reserved'),
-    (r'e',          'Reserved'),
-    (r'g',          'Reserved'),
+    (r':',          'node_delim_bash', {}, {}),
+    (r'-',          'node_delim_instance', {}, {}),
+    (r'/',          'node_delim_io', {}, {}),
+    (r'{',          'bracket_l', {}, {}),
+    (r'}',          'bracket_r', {}, {}),
+    (r'node',       'k_node', {}, {}),
+    (r'edge',       'k_edge', {}, {}),
+    (r'group',      'k_group', {}, {}),
+    (r'n',          'k_node', {}, {}),
+    (r'e',          'k_edge', {}, {}),
+    (r'g',          'k_group', {}, {}),
+    (r'[^\n]'       '')
 ]
