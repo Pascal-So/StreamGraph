@@ -14,7 +14,7 @@ def read_file( file_name ):
 source_codes = map( read_file , input_files )
 
 def lex_file( file_content ):
-    return sglex.lex(file_content, sglex.token_exprs, sglex.context)
+    return sglex.lex(file_content, sglex.token_exprs)
 
 tokens = map( lex_file , source_codes )
 
