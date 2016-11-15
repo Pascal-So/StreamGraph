@@ -1,0 +1,20 @@
+g moveSecondFieldToEnd{
+    # nodes
+    n extract2: cut -d" " -f2
+
+    # edges
+    e input extract2
+    e extract2 output.h0
+    e extract2.inv output.h1
+}
+
+# nodes
+n rearrange- moveSecondFieldToEnd
+n stuffToAppend/ infile 1
+n sort: sort # note how a node can have the same name as a command
+
+# edges
+e input rearrange
+e rearrange output.v0
+e stuffToAppend sort
+e sort output.v1
