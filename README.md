@@ -4,6 +4,6 @@
 
 Requires:
 * [pascal-so/argparse](https://github.com/Pascal-So/argparse)
-* Boost::filesystem
 
-readme todo
+
+replaced c++ with python first, but might go on to replace python with haskell

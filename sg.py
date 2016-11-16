@@ -27,7 +27,7 @@ tokens = map( lex_file , source_codes )
 # merge the token streams together
 tokens = functools.reduce(itertools.chain, tokens)
 
-# print("\n".join(map( "\t".join, tokens) ))
+print("\n".join(map( "\t".join, tokens) ))
 
 
 # parsing the token streams
