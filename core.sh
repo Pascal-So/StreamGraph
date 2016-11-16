@@ -1,4 +1,6 @@
 # the streamgraph executable core
+# this provides some setup and cleanup functionality that
+# is needed when executing a sg program
 # Pascal Sommer, November 2016
 
 # most of this will probably be wrapped in functions so
@@ -9,9 +11,10 @@
 
 set -u # throw an error if unset variables are used
 
-# create the fifo directory
-
-fifo_directory="/tmp/fifos"
+# create the fifo directory while making sure that multiple
+# sg scripts can be run at the same time, as long as they're
+# not started within the same second
+fifo_directory="/tmp/sg-fifos_$(date +%s)" 
 if [ ! -e "$fifo_directory" ]; then
     mkdir "$fifo_directory"
 elif [ ! -d "$fifo_directory" ]; then
@@ -23,6 +26,7 @@ fi
 
 input_files=() # unnamed arguments
 output_files=() # -o option arguments
+
 
 while [ $# -ge 1 ]; do
 
@@ -56,29 +60,39 @@ while [ $# -ge 1 ]; do
 
 done
 
-# these will be set by the compiled script, for now this is just a placeholder
-nr_input_files=2
-nr_output_files=0
 
-function check_io_files{
-    if [ $nr_input_files -ne ${input_files[@]} ]; then
-	echo "ERROR: incorrect number of input files given!" >&2
-	echo "    Expected: $nr_input_files files" >&2
-	echo "    Given: ${input_files[@]} files" >&2
+function check_io_files {
+    
+    if [ "$#" -ne 2 ]; then
+	echo "ERROR: function check_io_files requires two arguments!" >&2
 	exit 1
     fi
     
-    if [ $nr_output_files -ne ${output_files[@]} ]; then
+    nr_input_files="$1"
+    nr_output_files="$2"
+    
+    if [ $nr_input_files -ne ${#input_files[@]} ]; then
+	echo "ERROR: incorrect number of input files given!" >&2
+	echo "    Expected: $nr_input_files files" >&2
+	echo "    Given: ${#input_files[@]} files" >&2
+	exit 1
+    fi
+    
+    if [ $nr_output_files -ne ${#output_files[@]} ]; then
 	echo "ERROR: incorrect number of output files given!" >&2
 	echo "    Expected: $nr_output_files files" >&2
-	echo "    Given: ${output_files[@]} files" >&2
+	echo "    Given: ${#output_files[@]} files" >&2
 	exit 1
     fi
 
-    for f in ("${input_files[@]}" "${output_files[@]}"); do
+    for f in "${input_files[@]}"; do
 	if [ ! -f "$f" ]; then
 	    echo "ERROR: file $f does not exist!" >&2
 	    exit 1
 	fi
     done
+}
+
+function delete_fifo_dir {
+    rm -rf "$fifo_directory"
 }
