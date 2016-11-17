@@ -13,13 +13,27 @@ fifo_a=$(get_fifo)
 fifo_b=$(get_fifo)
 
 
-cat "${input_files[0]}" | sed '$a\' | tee "${fifo_b}" > "${fifo_a}" &
-cat "$fifo_a" &
-cat "$fifo_b" 
+function f {
+    c=$(get_fifo)
+    cat "$c" &
+    sort > "$c"
+    
+}
 
+# cat "${input_files[0]}" | sed '$a\' | tee "${fifo_b}" > "${fifo_a}" &
+# cat "$fifo_a" | f  &
+
+echo "asdf" > $fifo_a &
+
+
+cat $fifo_a
+
+# cat "$fifo_b" | f | rev
 
 
 # cleanup
+
+wait_for_all_fifos_empty
 
 delete_fifo_dir
 

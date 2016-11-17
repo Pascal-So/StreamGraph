@@ -103,12 +103,39 @@ function check_io_files {
 # number of the last fifo created.
 # maybe add a garbage collector at some point
 function get_fifo {
+
+    
+    # debugging
+    id=$RANDOM
+
+
+    lockfile="${fifo_directory}/lock"
+    while  ! ( set -o noclobber; echo "a" > "$lockfile") 2> /dev/null; do
+	echo "encountered lockfile " >&2
+        sleep 0.1
+    done
+    
+    trap 'rm -f "$lockfile"; exit $?' INT TERM EXIT
+
+    
+    
+    
     current_fifo_number=$(bump_fifo_number)
-    name="fifo_${current_fifo_number}"
+
+    echo "${id} got fifo number $current_fifo_number" >&2
+    
+    name="fifo_${current_fifo_number}.pipe"
     path_to_fifo="${fifo_directory}/$name"
     
     mkfifo "${path_to_fifo}"
     echo "${path_to_fifo}"
+
+
+    # remove lockfile and release trap
+    rm -f "$lockfile"
+    trap - INT TERM EXIT
+
+
 }
 
 # function reading the fifo_counter file, echoing the number
@@ -131,6 +158,17 @@ function bump_fifo_number {
 }
 
 
+# this is a hacky way to wait for the fifos to finish. This
+# function assumes, that there are at most twice as many sub
+# processes as there are named pipes. Once all the processes
+# have exited, the pipes should be empty
+
+function wait_for_all_fifos_empty {
+    for fifo in "$fifo_directory"/*.pipe; do
+	wait
+	wait
+    done
+}
 
 
 function delete_fifo_dir {
