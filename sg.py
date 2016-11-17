@@ -27,6 +27,19 @@ tokens = map( lex_file , source_codes )
 # merge the token streams together
 tokens = functools.reduce(itertools.chain, tokens)
 
+# print("\n".join(map( "\t".join, tokens) ))
+
+
+# formatting the token stream
+
+def cleanString(str):
+    return " ".join(str.split()[1:])
+
+def cleanStreamItem(tpl):
+    return (tpl[0], cleanString(tpl[1])) if tpl[0] in ["node", "edge", "group"] else tpl
+
+tokens = map(cleanStreamItem, tokens)
+
 print("\n".join(map( "\t".join, tokens) ))
 
 
