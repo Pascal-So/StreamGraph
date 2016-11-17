@@ -19,14 +19,18 @@ if [ ! -e "$fifo_directory" ]; then
     mkdir "$fifo_directory"
 elif [ ! -d "$fifo_directory" ]; then
     echo "Can't create $fifo_directory because file exists" >&2
-fi  
+else
+    if [ ! -w "$fifo_directory" ]; then
+	echo "Fifo directory not writable" >&2
+    fi
+fi
+
 
 
 # get the arguments
 
 input_files=() # unnamed arguments
 output_files=() # -o option arguments
-
 
 while [ $# -ge 1 ]; do
 
@@ -57,7 +61,6 @@ while [ $# -ge 1 ]; do
     done
 
     shift $(( $OPTIND - 1 ))
-
 done
 
 
@@ -92,6 +95,43 @@ function check_io_files {
 	fi
     done
 }
+
+
+
+# this will create a fifo and return the path to it. The
+# file fifo_counter in the fifo directory will hold the
+# number of the last fifo created.
+# maybe add a garbage collector at some point
+function get_fifo {
+    current_fifo_number=$(bump_fifo_number)
+    name="fifo_${current_fifo_number}"
+    path_to_fifo="${fifo_directory}/$name"
+    
+    mkfifo "${path_to_fifo}"
+    echo "${path_to_fifo}"
+}
+
+# function reading the fifo_counter file, echoing the number
+# incrementing the number, and writing the new number to the
+# file. If the file does not exist, echo 0 and write 1 to the
+# file.
+function bump_fifo_number {
+    path="${fifo_directory}/fifo_counter"
+    if [ -f "$path" ]; then
+	nr=$(cat "$path")
+    else
+	nr=0
+    fi
+
+    echo $nr
+
+    ((nr++))
+    
+    echo $nr > "$path"
+}
+
+
+
 
 function delete_fifo_dir {
     rm -rf "$fifo_directory"
