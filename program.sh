@@ -20,15 +20,9 @@ function f {
     
 }
 
-# cat "${input_files[0]}" | sed '$a\' | tee "${fifo_b}" > "${fifo_a}" &
-# cat "$fifo_a" | f  &
-
-echo "asdf" > $fifo_a &
-
-
-cat $fifo_a
-
-# cat "$fifo_b" | f | rev
+cat "${input_files[0]}" | sed '$a\' | tee "${fifo_b}" > "${fifo_a}" &
+cat "$fifo_a" | f  &
+cat "$fifo_b" | f | rev
 
 
 # cleanup

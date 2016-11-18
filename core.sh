@@ -11,6 +11,9 @@
 
 set -u # throw an error if unset variables are used
 
+# display information about logfiles, sub processes, etc.
+debug_messages="false"
+
 # create the fifo directory while making sure that multiple
 # sg scripts can be run at the same time, as long as they're
 # not started within the same second
@@ -111,18 +114,16 @@ function get_fifo {
 
     lockfile="${fifo_directory}/lock"
     while  ! ( set -o noclobber; echo "a" > "$lockfile") 2> /dev/null; do
-	echo "encountered lockfile " >&2
-        sleep 0.1
+	if [ "$debug_messages" = true ]; then echo "encountered lockfile " >&2; fi
+        sleep 0.005
     done
     
     trap 'rm -f "$lockfile"; exit $?' INT TERM EXIT
 
     
-    
-    
     current_fifo_number=$(bump_fifo_number)
 
-    echo "${id} got fifo number $current_fifo_number" >&2
+    if [ "$debug_messages" = true ]; then echo "${id} got fifo number $current_fifo_number" >&2; fi
     
     name="fifo_${current_fifo_number}.pipe"
     path_to_fifo="${fifo_directory}/$name"
@@ -134,8 +135,6 @@ function get_fifo {
     # remove lockfile and release trap
     rm -f "$lockfile"
     trap - INT TERM EXIT
-
-
 }
 
 # function reading the fifo_counter file, echoing the number
@@ -168,6 +167,7 @@ function wait_for_all_fifos_empty {
 	wait
 	wait
     done
+    if [ "$debug_messages" = true ]; then echo "Sub processes done" >&2; fi
 }
 
 
