@@ -45,3 +45,12 @@ print("\n".join(map( "\t".join, tokens) ))
 
 # parsing the token streams
 
+def parseGroup(tokens):
+    """Parses the main program body or a group/subgroup
+    
+    Args: tokens - the list of tokens (pair of token type and token content strings)
+    Retunrs: pair of group object and remaining tokens
+    """
+
+    for (index,token) in enumerate(tokens):
+        pass
