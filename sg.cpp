@@ -1,6 +1,6 @@
 #include<bits/stdc++.h>
-
 #include "sg-lexer.hpp"
+#include "sg-parser.hpp"
 #define token std::pair<std::string, std::string> // token type, token content
 
 // The sg compiler
