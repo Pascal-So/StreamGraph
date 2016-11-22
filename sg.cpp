@@ -9,7 +9,7 @@
 
 
 
-// some string functions
+// some utility functions
 
 bool is_whitespace(char c){
     return isspace(c);
@@ -21,6 +21,11 @@ bool is_not_newline(char c){
 
 bool is_alphanumeric(char c){
     return isalnum(c);
+}
+
+template <typename T>
+void vector_append(std::vector<T> &v1, const std::vector<T> &v2){
+    v1.insert(v1.end(), v2.begin(), v2.end());
 }
 
 
@@ -61,9 +66,9 @@ class Scanner{
 	if(len == -1){
 	    len = buffer.size();
 	}
-	len = min(len, buffer.size());	
+	len = std::min(len, (int)buffer.size());	
 	std::string out = buffer.substr(0, len);
-	for(c:out){
+	for(auto c:out){
 	    if(is_not_newline(c)){
 		++line_character_number;
 	    }else{
@@ -129,7 +134,7 @@ public:
     Scanner(std::string file_path): file_path(file_path)
     {
 	infile.open(file_path, std::ifstream::in);
-	line_number = 0;
+	line_number = 1;
 	line_character_number = 0;
 	buffer = "";
     }
@@ -347,10 +352,57 @@ class Lexer{
 public:
     std::string file_path;
 
-    
+    std::vector<token> lex(){
+	std::vector<token> entire_program;
+	
+	while( ! scanner->eof() ){
+	    std::vector<token> output;
+
+	    output = lex_comment();     // try matching comment
+	    if(output == v_empty){
+		output = lex_node();    // try matching node
+	    }
+	    if(output == v_empty){
+		output = lex_edge();    // try matching edge
+	    }
+	    if(output == v_empty){
+		output = lex_group_header(); // try matching group header
+	    }
+	    if(output == v_empty){
+		output = lex_group_close();  // try matching group end
+	    }
+
+	    if(output == v_empty){
+		// nothing could be matched, print error.
+		print_error("Expected group, edge, node or comment");
+		output = v_error;
+	    }
+
+	    if(output == v_error){
+		// an error has occurred while lexing.
+	        // Stop lexing any further.
+		break;
+	    }
+	    
+	    vector_append(entire_program, output);
+	}
+
+	return entire_program;
+    }
     
     Lexer(std::string file_path): file_path(file_path){
 	scanner = new Scanner(file_path);
 	v_error.push_back({"ERROR", "ERROR"});
     }
 };
+
+
+int main(){
+    Lexer l ("ipLookup.sg");
+
+    auto result = l.lex();
+
+    for(auto t:result){
+	std::cout<< t.first << "\t" << t.second<<"\n";
+    }
+}
