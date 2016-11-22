@@ -37,6 +37,9 @@ class Scanner{
     std::string buffer;
     std::ifstream infile;
     std::string file_path;
+    // has filestream reached eof? if this is true, buffer could still be non-
+    // empty.
+    bool eof;
     
     int line_number;
     int line_character_number;
@@ -48,8 +51,12 @@ class Scanner{
 	    }
 
 	    char next;
-	    infile.get(next);
-	    buffer+=next;
+	    if( !infile.get(next)){
+		eof = true;
+		return false;
+	    }else{
+		buffer+=next;
+	    }
 	}
 	return true;
     }
@@ -84,6 +91,7 @@ class Scanner{
     // usually leaves a single character in the buffer, unless eof
     // was reached.
     std::string get_while(bool (*cond)(char)){
+	
 	for(int i = 0; i < buffer.size(); ++i){
 	    if( ! (*cond)(buffer[i])){
 		return clear_from_buffer(i);
@@ -94,7 +102,7 @@ class Scanner{
 
 	for(;;){
 	    if( ! fill_buffer(1)) break;
-	    if( ! (*cond)(buffer[1])) break;
+	    if( ! (*cond)(buffer[0])) break;
 	    out += clear_from_buffer(1);
 	}
 
@@ -120,13 +128,12 @@ class Scanner{
 	return out;
     }
 
-    void skip_whitespace(){
-	get_while(&is_whitespace);
-    }
+    
 
 public:
-    bool eof();
+    bool reached_eof();
     bool match_string(std::string pattern);
+    void skip_whitespace();
     std::string get_alphanum();
     std::string get_rest_of_line();
     std::string get_position();
@@ -137,17 +144,23 @@ public:
 	line_number = 1;
 	line_character_number = 0;
 	buffer = "";
+	eof = false;
     }
 };
 
+void Scanner::skip_whitespace(){
+    get_while(&is_whitespace);
+}
+
 // is eof reached?
-bool Scanner::eof(){
-    return buffer.empty() && infile.eof();
+bool Scanner::reached_eof(){
+    return buffer.empty() && eof;
 }
 
 // if string matches, consume input, otherwise don't
 // consume anything. Skips any leading whitespace.
 bool Scanner::match_string(std::string pattern){
+    skip_whitespace();
     std::string in = peek_str(pattern.size());
 
     if(in.size() < pattern.size()){
@@ -155,6 +168,7 @@ bool Scanner::match_string(std::string pattern){
     }
 
     if( in == pattern ){
+	// if string matches, consume it.
 	get_str(pattern.size());
 	return true;
     }else{
@@ -165,6 +179,7 @@ bool Scanner::match_string(std::string pattern){
 // consumes word unless EOF. Returns without leading
 // or trailing whitespace.
 std::string Scanner::get_alphanum(){
+    skip_whitespace();
     return get_while(&is_alphanumeric);
 }
 
@@ -354,8 +369,10 @@ public:
 
     std::vector<token> lex(){
 	std::vector<token> entire_program;
+
+	scanner->skip_whitespace();
 	
-	while( ! scanner->eof() ){
+	while( ! scanner->reached_eof() ){
 	    std::vector<token> output;
 
 	    output = lex_comment();     // try matching comment
@@ -385,7 +402,10 @@ public:
 	    }
 	    
 	    vector_append(entire_program, output);
+
+	    scanner->skip_whitespace();
 	}
+
 
 	return entire_program;
     }
@@ -398,10 +418,28 @@ public:
 
 
 int main(){
+
+    /*
+    std::ifstream f ("ipLookup.sg");
+
+    char c;
+    while(true){
+	std::cout<<f.get(c);
+	usleep(10000);
+	if (c == EOF){
+	    std::cout<<"EOF " << EOF <<"\n";
+	}else{
+	    std::cout<<c<<std::flush;
+	}
+    }
+    */
+    
+    
     Lexer l ("ipLookup.sg");
 
     auto result = l.lex();
-
+    
+    
     for(auto t:result){
 	std::cout<< t.first << "\t" << t.second<<"\n";
     }
