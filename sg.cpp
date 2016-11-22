@@ -144,6 +144,8 @@ class Lexer{
 	    print_error("Expected ':', '/' or '-'");
 	    return v_error;
 	}
+
+	return out;
     }
 
     std::vector<token> lex_modifier(){
@@ -215,10 +217,18 @@ class Lexer{
 
 	std::string name = scanner->get_alphanum();
 
+	if(name == ""){
+	    print_error("Expected group name");
+	    return v_error;
+	}
+	
 	if( ! scanner->match_string("{")){
 	    print_error("Expected '{'");
 	    return v_error;
 	}
+
+	std::vector<token> out = {{"group", name}};
+	return out;
     }
 
     std::vector<token> lex_group_close(){
@@ -226,7 +236,8 @@ class Lexer{
 	    return v_empty;
 	}
 
-	
+	std::vector<token> out = {{"group_close", "}"}};
+	return out;
     }
 
     std::vector<token> lex_comment(){
