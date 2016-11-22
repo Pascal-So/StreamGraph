@@ -6,42 +6,121 @@
 
 // requires GCC >= 4.4
 
+
+
+
+// some string functions
+
+bool is_whitespace(char c){
+    return isspace(c);
+}
+
+bool is_not_newline(char c){
+    return (c!='\n' && c!='\r');
+}
+
+bool is_alphanumeric(char c){
+    return isalnum(c);
+}
+
+
 class Scanner{
     // The Scanner class doesn't do the lexing, but is the interface for the
     // actual lexer to the file. It keeps track of the line and character
     // number, and lets the lexer fetch words or lines, and provides a simple
     // form of backtracking.
-    std::stringstream buffered;
+    std::string buffer;
     std::ifstream infile;
     std::string file_path;
-    int fallback_line_number;
-    int fallback_character_number;
+    
+    int line_number;
+    int line_character_number;
 
-    bool read_to_buffer(){	
-	std::string line = "";
-	if( ! getline(infile, line)) return false;
+    bool fill_buffer(int len){	
+        while (buffer.size() < len){
+	    if(infile.eof()){
+		return false;
+	    }
 
-	buffered << line;
+	    char next;
+	    infile.get(next);
+	    buffer+=next;
+	}
+	return true;
+    }
 
-	if(infile.bad()){
-	    std::cerr<<"IO Error\n";
-	    return false;
-        }
 
-	return ! buffered.str().empty(); 
+    // return substring from buffer and then remove it. If len is
+    // greater than the buffer length, the entire buffer will be
+    // returned quietly. len -1 will return the entire buffer as
+    // well.
+    // this function updates the line and character number, thus
+    // every function that clears something from the buffer must
+    // do such through this function.
+    std::string clear_from_buffer(int len){
+	if(len == -1){
+	    len = buffer.size();
+	}
+	len = min(len, buffer.size());	
+	std::string out = buffer.substr(0, len);
+	for(c:out){
+	    if(is_not_newline(c)){
+		++line_character_number;
+	    }else{
+		line_character_number = 0;
+		++line_number;
+	    }
+	}
+	buffer.erase(buffer.begin(), buffer.begin()+len);
+	return out;
+    }
+
+    // consumes the input while the next character fulfills (*cond).
+    // usually leaves a single character in the buffer, unless eof
+    // was reached.
+    std::string get_while(bool (*cond)(char)){
+	for(int i = 0; i < buffer.size(); ++i){
+	    if( ! (*cond)(buffer[i])){
+		return clear_from_buffer(i);
+	    }
+	}
+
+	std::string out = clear_from_buffer(-1);
+
+	for(;;){
+	    if( ! fill_buffer(1)) break;
+	    if( ! (*cond)(buffer[1])) break;
+	    out += clear_from_buffer(1);
+	}
+
+	return out;
+    }
+
+
+    std::string peek_str(int len){
+	if( ! fill_buffer(len)){
+	    // return as much as possible if eof is reached
+	    len = buffer.size();
+	}
+
+	std::string out = buffer.substr(0, len);
+	return out;
+    }
+
+    std::string get_str(int len){
+	std::string out = peek_str(len);
+	// this might be shorter than the original len
+	len = out.size();
+	clear_from_buffer(len);
+	return out;
     }
 
     void skip_whitespace(){
-	
+	get_while(&is_whitespace);
     }
 
-    // todo: figure out what kind of buffer functionality
-    // I need exactly
-    
 public:
-    int line_number;
-    int line_character_number;
-    
+    bool eof();
     bool match_string(std::string pattern);
     std::string get_alphanum();
     std::string get_rest_of_line();
@@ -52,26 +131,41 @@ public:
 	infile.open(file_path, std::ifstream::in);
 	line_number = 0;
 	line_character_number = 0;
-	//buffered = "";
+	buffer = "";
     }
 };
 
+// is eof reached?
+bool Scanner::eof(){
+    return buffer.empty() && infile.eof();
+}
 
 // if string matches, consume input, otherwise don't
 // consume anything. Skips any leading whitespace.
 bool Scanner::match_string(std::string pattern){
-	
+    std::string in = peek_str(pattern.size());
+
+    if(in.size() < pattern.size()){
+	return false;
+    }
+
+    if( in == pattern ){
+	get_str(pattern.size());
+	return true;
+    }else{
+	return false;
+    }
 }
 
 // consumes word unless EOF. Returns without leading
 // or trailing whitespace.
 std::string Scanner::get_alphanum(){
-	
+    return get_while(&is_alphanumeric);
 }
 
 // get until newline, and consume input.
 std::string Scanner::get_rest_of_line(){
-	
+    return get_while(&is_not_newline);
 }
 
 // return the file path, line number and character number
