@@ -5,15 +5,30 @@
 enum Io_type{INFILE, OUTFILE};
 enum Name_modifier{HORIZONTAL, VERTICAL, INVERSE};
 
-
-
+struct Node;
+struct Edge;
+struct Group;
 
 struct Node{
     std::string name;
     bool has_input();
     bool has_output();
-    bool has_inverse();
-    void link();
+    
+    // is modifier .inv applicable? Defaults to
+    // false, overridden by Bash_node if known
+    bool has_inverse(); 
+
+    // takes the current namespace of groups as
+    // map from group name to group pointer.
+    // Defaults to noop but is overriden by the
+    // instance nodes.
+    void link(std::unordered_map<std::string, Group*>);
+
+    // outwards edges in the DAG. The edge
+    // structs contain the additional
+    // information such as shadow node
+    // modifiers.
+    std::vector<Edge*> out_edges;
 };
 
 struct Bash_node:Node{
@@ -50,6 +65,8 @@ struct Edge{
 struct Group{
     std::string name;
     std::vector<Group*> children_groups;
-    std::vector<Node*> children_nodes;
+    std::vector<Bash_node*> children_bash_nodes;
+    std::vector<Instance_node*> children_instance_nodes;
+    std::vector<Io_node*> children_io_nodes;
     std::vector<Edge*> children_edges;
 };
