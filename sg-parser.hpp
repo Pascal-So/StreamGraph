@@ -1,19 +1,14 @@
 #include<bits/stdc++.h>
 #define token std::pair<std::string, std::string> // {token type, token content}
 
+
 enum Io_type{INFILE, OUTFILE};
 enum Name_modifier{HORIZONTAL, VERTICAL, INVERSE};
 
 
-struct Group{
-    std::string name;
-    std::vector<Group*> children_groups;
-    std::vector<Node*> children_nodes;
-    std::vector<Edge*> children_edges;
-};
+
 
 struct Node{
-
     std::string name;
     bool has_input();
     bool has_output();
@@ -21,13 +16,13 @@ struct Node{
     void link();
 };
 
-struct Bash_node{
+struct Bash_node:Node{
     std::string bash_command;
 
     bool has_inverse();
 };
 
-struct Io_node{
+struct Io_node:Node{
     Io_type io_type;
     int number;
 
@@ -35,10 +30,10 @@ struct Io_node{
     bool has_output();
 };
 
-struct Instane_node{
+struct Instance_node:Node{
     std::string group_name;
     
-
+    
     Group* group;
     void link();
 };
@@ -52,3 +47,9 @@ struct Edge{
     void link();
 };
 
+struct Group{
+    std::string name;
+    std::vector<Group*> children_groups;
+    std::vector<Node*> children_nodes;
+    std::vector<Edge*> children_edges;
+};
