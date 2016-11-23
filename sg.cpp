@@ -15,6 +15,8 @@ int main(){
     Lexer l ("ipLookup.sg");
 
     auto result = l.lex();
+
+    
     
     for(auto t:result){
 	std::cout<< t.first << "\t" << t.second<<"\n";
