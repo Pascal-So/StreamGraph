@@ -12,7 +12,7 @@
 
 
 int main(){
-    Lexer l ("ipLookup.sg");
+    Lexer l ("program.sg");
 
     auto result = l.lex();
 

@@ -2,40 +2,62 @@
 #include "sg-parser.hpp"
 #define token std::pair<std::string, std::string> // {token type, token content}
 
-bool Node::has_input(){
-    return true;
+
+void print_compile_error(std::string message){
+    std::cerr<<"COMPILE ERROR: " << message << "\n";
 }
 
-
-bool Node::has_output(){
-    return true;
-}
-
-
-bool Node::has_inverse(){
-    return false;
-}
-
-
-bool Node::link_groups(){
-    // noop
-}
-
-
-bool Instance_node::link_groups(std::unordered_map<std::string, Group*> & groups_namespace){
-    if(groups_namespace.find(group_name) != groups_namespace.end()){
-	group = groups_namespace[group_name]; // link to group
-	return true;
-    }else{
-	return false;
-    }
+void print_parse_error(std::string message){
+    std::cerr<<"PARSE ERROR: " << message << "\n";
 }
 
 
 // Takes a stream of tokens and translates
 // it in to the basic AST
-Group* parse(std::vector<token>){
+Group* parse(std::vector<token> tokens){
+    Group* out;
     
+    std::stack<Group*> current_stack;
+    current_stack.push(out);
+
+    for(size_t i = 0; i < tokens.size(); ++i){
+	token t = tokens[i];
+	
+	if(t.first == "group"){
+	    Group* new_group;
+	    new_group->name = t.second;
+	    
+	    current_stack.top()->children_groups.push_back(new_group);
+	    current_stack.push(new_group);
+	}
+	else if(t.first == "group_close"){
+	    current_stack.pop();
+	    if(current_stack.size() < 1){
+		print_parse_error("Found '}' but no group is currently open.");
+		return 0;
+	    }
+	}
+	else if(t.first == "edge"){
+	    std::string source_name = tokens[++i].second;
+	    std::string mod_source = tokens[++i].second;
+	    std::string destination_name = tokens[++i].second;
+	    std::string mod_destination = tokens[++i].second;
+
+	    Edge* e = new Edge(source_name, mod_source, destination_name, mod_destination);
+
+	    current_stack.top()->children_edges.push_back(e);
+	}
+	else if(t.first == "node"){
+	    
+	}
+    }
+
+    if(current_stack.size() > 1){
+	print_parse_error("Did you forget to close a group?");
+	return 0;
+    }
+    
+    return out;
 }
 
 
@@ -44,7 +66,7 @@ Group* parse(std::vector<token>){
 // pointers to where Elements are linked
 // to by name.
 bool link(Group* ast){
-    
+    return true;
 }
 
 
@@ -52,5 +74,5 @@ bool link(Group* ast){
 // within it that turn it in to the
 // DAG represented by the code.
 bool transform(Group* ast){
-    
+    return true;
 }

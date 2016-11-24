@@ -128,14 +128,16 @@ std::vector<token> Lexer::lex_node(){
 
 std::vector<token> Lexer::lex_modifier(){
     std::vector<token> out;
+    std::string mod = "";
     if(scanner->match_string(".")){
-	std::string mod = scanner->get_alphanum();
+	mod = scanner->get_alphanum();
 	if(mod == ""){
 	    print_error("Expected node modifier");
 	    return v_error;
 	}
-	out.push_back({"node_modifier", mod});
     }
+    // this pushes a mod either way, even if it's empty.
+    out.push_back({"node_modifier", mod});
     return out;
 }
 
