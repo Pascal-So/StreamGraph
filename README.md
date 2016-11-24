@@ -2,8 +2,4 @@
 
 *Designing a concept, language, interpreter, workflow, whatevs..*
 
-Requires:
-* [pascal-so/argparse](https://github.com/Pascal-So/argparse)
-
-
-replaced c++ with python first, but might go on to replace python with haskell
+This project has moved from c++ first to python, then a bit of haskell, back to python, but it will be all c++ and bash now.
