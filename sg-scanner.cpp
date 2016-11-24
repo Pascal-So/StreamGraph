@@ -22,6 +22,9 @@ bool is_not_newline(char c){
 bool is_alphanumeric(char c){
     return isalnum(c);
 }
+bool is_digit(char c){
+    return isdigit(c);
+}
 
 
 
@@ -64,11 +67,18 @@ bool Scanner::match_string(std::string pattern){
     }
 }
 
-// consumes word unless EOF. Returns without leading
-// or trailing whitespace.
+// consumes word made from letters and numbers. Returns
+// without leading or trailing whitespace.
 std::string Scanner::get_alphanum(){
     skip_whitespace();
     return get_while(&is_alphanumeric);
+}
+
+// consumes number. Returns  without leading or trailing
+// whitespace.
+std::string Scanner::get_number(){
+    skip_whitespace();
+    return get_while(&is_digit);
 }
 
 // get until newline, and consume input.

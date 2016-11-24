@@ -20,6 +20,10 @@ Group* parse(std::vector<token> tokens){
     std::stack<Group*> current_stack;
     current_stack.push(out);
 
+    // note that `i` is changed from within the loop in
+    // order to always parse the entire node or edge.
+    // (These have already been lexed together, therefore
+    // we know that the order is correct.)
     for(size_t i = 0; i < tokens.size(); ++i){
 	token t = tokens[i];
 	
@@ -48,6 +52,21 @@ Group* parse(std::vector<token> tokens){
 	    current_stack.top()->children_edges.push_back(e);
 	}
 	else if(t.first == "node"){
+	    std::string name = t.second;
+	    token node_data = tokens[++i];
+	    if (node_data.first == "bash_command"){
+
+	    }
+	    else if(node_data.first == "instance"){
+
+	    }
+	    else if(node_data.first == "infile"){
+
+	    }
+	    else if(node_data.first == "outfile"){
+
+	    }
+
 	    
 	}
     }

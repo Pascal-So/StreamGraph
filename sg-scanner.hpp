@@ -42,6 +42,7 @@ public:
     bool match_string(std::string pattern);
     void skip_whitespace();
     std::string get_alphanum();
+    std::string get_number();
     std::string get_rest_of_line();
     std::string get_position();
     
