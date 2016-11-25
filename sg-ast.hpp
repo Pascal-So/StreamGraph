@@ -13,8 +13,8 @@
 #define SG_AST_HPP
 
 enum Io_type{INPUT, OUTPUT};
-enum Name_modifier_source{INVERSE};
-enum Name_modifier_destination{HORIZONTAL, VERTICAL};
+enum Name_modifier{INVERSE, HORIZONTAL, VERTICAL, NONE};
+
 
 struct Node;
 struct Edge;
@@ -47,6 +47,8 @@ struct Bash_node:Node{
     std::string bash_command;
     
     bool has_inverse();
+
+    Bash_node(std::string bash_command);
 };
 
 struct Io_node:Node{
@@ -55,6 +57,8 @@ struct Io_node:Node{
 
     bool has_input();
     bool has_output();
+
+    Io_node(std::string io_type, int number);
 };
 
 struct Instance_node:Node{
@@ -63,21 +67,25 @@ struct Instance_node:Node{
     
     Group* group;
     bool link_groups(std::unordered_map<std::string, Group*> &);
+
+    Instance_node(std::string group_name);
 };
 
 // these nodes are created by the parser,
 // they appear in the source code only
 // implicitly as the input and output node.
 struct Stdio_node:Node{
-    Io_type type;
+    Io_type io_type;
     
+    bool has_input();
+    bool has_output();
 };
 
 struct Edge{
     std::string source_name;
     std::string destination_name;
-    Name_modifier_source mod_source;
-    Name_modifier_destination mod_destination;
+    Name_modifier mod_source;
+    Name_modifier mod_destination;
     int mod_nr_destination;
 
     Node* source;

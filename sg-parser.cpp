@@ -52,22 +52,23 @@ Group* parse(std::vector<token> tokens){
 	    current_stack.top()->children_edges.push_back(e);
 	}
 	else if(t.first == "node"){
-	    std::string name = t.second;
 	    token node_data = tokens[++i];
 	    if (node_data.first == "bash_command"){
-
+		Bash_node* n = new Bash_node(node_data.second);
+		n->name = t.second;
+		current_stack.top()->children_bash_nodes.push_back(n);
 	    }
 	    else if(node_data.first == "instance"){
-
+		Instance_node* n = new Instance_node(node_data.second);
+		n->name = t.second;
+		current_stack.top()->children_instance_nodes.push_back(n);
 	    }
-	    else if(node_data.first == "infile"){
-
+	    else if(node_data.first == "infile" || node_data.first == "outfile"){
+		int file_number = stoi(node_data.second);
+		Io_node* n = new Io_node(node_data.first, file_number);
+		n->name = t.second;
+		current_stack.top()->children_io_nodes.push_back(n);
 	    }
-	    else if(node_data.first == "outfile"){
-
-	    }
-
-	    
 	}
     }
 
