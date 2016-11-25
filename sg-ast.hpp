@@ -109,6 +109,8 @@ struct Group{
     std::vector<Instance_node*> children_instance_nodes;
     std::vector<Io_node*> children_io_nodes;
     std::vector<Edge*> children_edges;
+    Stdio_node* input_node;
+    Stdio_node* output_node;
 };
 
 #endif
