@@ -128,3 +128,7 @@ bool Edge::link_nodes(std::unordered_map<std::string, Node*> & nodes_namespace){
     
     return true;
 }
+
+Group::Group(){
+    visited = false;
+}

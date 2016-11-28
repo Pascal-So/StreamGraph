@@ -110,6 +110,7 @@ struct Edge{
 };
 
 struct Group{
+    bool visited;
     std::string name;
     std::vector<Group*> children_groups;
     std::vector<Bash_node*> children_bash_nodes;
@@ -118,6 +119,8 @@ struct Group{
     std::vector<Edge*> children_edges;
     Stdio_node* input_node;
     Stdio_node* output_node;
+
+    Group();
 };
 
 #endif

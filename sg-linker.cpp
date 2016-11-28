@@ -6,8 +6,8 @@
 // takes a group pointer and an existing group namespace
 // and updates the namespace to contain the subgroups
 // of the referenced group.
-void update_group_namespace(Group* g, Group_namespace & group_namespace){
-    for(auto sg : g->children_groups){
+void update_group_namespace(Group* ast_node, Group_namespace & group_namespace){
+    for(auto sg : ast_node->children_groups){
 	group_namespace[sg->name] = sg;
     }
 }
@@ -16,19 +16,19 @@ void update_group_namespace(Group* g, Group_namespace & group_namespace){
 // takes a group pointer and returns the map from name
 // to node pointer for all the nodes available in this
 // group
-Node_namespace create_node_namespace(Group* g){
+Node_namespace create_node_namespace(Group* ast_node){
     Node_namespace out;
-    for(auto n : g->children_bash_nodes){
+    for(auto n : ast_node->children_bash_nodes){
 	out[n->name] = n;
     }
-    for(auto n : g->children_io_nodes){
+    for(auto n : ast_node->children_io_nodes){
 	out[n->name] = n;
     }
-    for(auto n : g->children_instance_nodes){
+    for(auto n : ast_node->children_instance_nodes){
 	out[n->name] = n;
     }
-    out["input"] = g->input_node;
-    out["output"] = g->output_node;
+    out["input"] = ast_node->input_node;
+    out["output"] = ast_node->output_node;
     return out;
 }
 
@@ -70,8 +70,8 @@ bool link_edges_to_nodes(std::vector<Edge*> & edges, Node_namespace node_namespa
 // takes the AST and adds the links
 // in the nodes that turn it in to
 // the DAG represented by sg code.
-void transform(Group* ast){
-    for(auto e:ast->children_edges){
+void transform(Group* ast_node){
+    for(auto e:ast_node->children_edges){
 	e->source->out_edges.push_back(e);
 	e->destination->in_edges.push_back(e);
     }
@@ -82,25 +82,34 @@ void transform(Group* ast){
 // only stored by name and adds the
 // pointers to where Elements are linked
 // to by name.
-// this function is called recursively
-bool link(Group* ast, Group_namespace group_namespace){
-    update_group_namespace(ast, group_namespace);
-    if( ! link_nodes_to_groups(ast->children_instance_nodes, group_namespace)){
+// this function calls itself recursively
+bool link(Group* current_group, Group_namespace group_namespace){
+    update_group_namespace(current_group, group_namespace);
+    if( ! link_nodes_to_groups(current_group->children_instance_nodes, group_namespace)){
 	// linking has failed, probably because of a missing
 	// group or spelling error
 	return false;
     }
     
-    Node_namespace node_namespace = create_node_namespace(ast);
-    if ( ! link_edges_to_nodes(ast->children_edges, node_namespace)){
+    Node_namespace node_namespace = create_node_namespace(current_group);
+    if ( ! link_edges_to_nodes(current_group->children_edges, node_namespace)){
 	// linking has failed, probably because of a missing
 	// node or because a input node was used as output
 	// or vice versa
 	return false;
     }
 
+    current_group->visited = true;
+
     // call recursively for subgroups
-    for(auto g : ast->children_groups){
+    for(auto g : current_group->children_groups){
+	if(g->visited){
+	    // group has already been processed,
+	    // because the program is recursive.
+	    // We don't have to visit this group
+	    // again.
+	    continue;
+	}
 	if( ! link(g, group_namespace)){
 	    // something has gone wrong in the
 	    // sub group. Fail entire compilation
@@ -108,7 +117,7 @@ bool link(Group* ast, Group_namespace group_namespace){
 	}
     }
 
-    transform(ast);
+    transform(current_group);
     
     return true;
 }
@@ -117,7 +126,7 @@ bool link(Group* ast, Group_namespace group_namespace){
 
 // Set visited flag on nodes that are reachable
 // from the end when traversing DAG backwards.
-void visit_backwards(Group* ast){
+void visit_backwards(Group* ast_root){
     // the nodes queue contains nodes from all
     // levels. This works, because they're
     // pointers, not name references that are
@@ -125,9 +134,9 @@ void visit_backwards(Group* ast){
     std::queue<Node*> nodes;
 
     // add overall output node to queue
-    nodes.push(ast->output_node);
+    nodes.push(ast_root->output_node);
     // add outfile nodes to queue
-    for(auto n:ast->children_io_nodes){
+    for(auto n:ast_root->children_io_nodes){
 	if(n->io_type == OUTPUT){
 	    nodes.push(n);
 	}
@@ -155,8 +164,48 @@ void visit_backwards(Group* ast){
 }
 
 
-std::pair<std::vector<Node*>, std::vector<Group*> > check_for_unvisited(Group* ast){
+void reset_group_visited(Group* ast_root){
+    ast_root->visited = false;
+    for(auto g:ast_root->children_groups){
+	reset_group_visited(g);
+    }
+}
+
+
+std::pair<std::vector<Group*>, std::vector<Node*> > check_for_unvisited(Group* current_group){
+    std::vector<Group*> groups_with_no_visited_nodes;
+    std::vector<Node*> unvisited_nodes;
+
+    if(current_group->visited){
+	// already been here. Return empty result.
+	return {groups_with_no_visited_nodes, unvisited_nodes};
+    }
+
+
+    // have any nodes in the current group been visited so far?
+    bool nodes_visited = false;
+
+    // collect all subnodes to make it easier to iterate over them.
+    std::vector<Node*> subnodes;
+    subnodes.insert(subnodes.end(),
+		    current_group->children_bash_nodes.begin(),
+		    current_group->children_bash_nodes.end());
+    subnodes.insert(subnodes.end(),
+		    current_group->children_instance_nodes.begin(),
+		    current_group->children_instance_nodes.end());
+    subnodes.insert(subnodes.end(),
+		    current_group->children_io_nodes.begin(),
+		    current_group->children_io_nodes.end());
     
+    for(auto n:subnodes){
+	if(n->visited){
+	    nodes_visited = true; 
+	}else{
+	    unvisited_nodes.push_back(n);
+	}
+    }
+
+    return {groups_with_no_visited_nodes, unvisited_nodes};
 }
 
 
@@ -165,10 +214,16 @@ std::pair<std::vector<Node*>, std::vector<Group*> > check_for_unvisited(Group* a
 // if input to output is connected.
 // If fail_on_warn is set, the function will
 // treat a warning (unused node) as error.
-void traversal(Group* ast, bool fail_on_warn){
+void traversal(Group* ast_root, bool fail_on_warn){
     // set visited flags on nodes that reach output
-    visit_backwards(ast);
+    reset_group_visited(ast_root);
+    visit_backwards(ast_root);
 
-    // check for unvisited nodes
+
+    // check for unvisited nodes and groups
+    // with no visited nodes
+    reset_group_visited(ast_root);
+    check_for_unvisited(ast_root);
+
     
 }

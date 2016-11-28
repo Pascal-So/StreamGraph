@@ -13,7 +13,7 @@ void print_parse_error(std::string message){
 // instead an internal stack is used to
 // keep track of nested groups
 Group* parse(std::vector<token> tokens){
-    Group* out;
+    Group* out = new Group();
 
     out->input_node = new Stdio_node(INPUT);
     out->output_node = new Stdio_node(OUTPUT);
@@ -29,7 +29,7 @@ Group* parse(std::vector<token> tokens){
 	token t = tokens[i];
 	
 	if(t.first == "group"){
-	    Group* new_group;
+	    Group* new_group = new Group();
 	    new_group->name = t.second;
 	    
 	    current_stack.top()->children_groups.push_back(new_group);
