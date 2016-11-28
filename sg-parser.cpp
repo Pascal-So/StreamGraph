@@ -3,10 +3,6 @@
 #define token std::pair<std::string, std::string> // {token type, token content}
 
 
-void print_compile_error(std::string message){
-    std::cerr<<"COMPILE ERROR: " << message << "\n";
-}
-
 void print_parse_error(std::string message){
     std::cerr<<"PARSE ERROR: " << message << "\n";
 }

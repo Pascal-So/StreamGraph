@@ -3,6 +3,11 @@
 #define token std::pair<std::string, std::string> // {token type, token content}
 
 
+void print_linker_error(std::string message){
+    std::cerr<<"LINKER ERROR: " << message << "\n";
+}
+
+
 bool Node::has_input(){
     return true;
 }
@@ -63,6 +68,7 @@ bool Instance_node::link_groups(std::unordered_map<std::string, Group*> & groups
 	group = groups_namespace[group_name]; // link to group
 	return true;
     }else{
+	print_linker_error("Group \"" + group_name + "\" could not be found.");
 	return false;
     }
 }
@@ -80,4 +86,36 @@ Edge::Edge(std::string source_name,
     mod_source = (mod_source_str == "inv") ? INVERSE : NONE;
     mod_destination = (mod_destination_str[0] == 'h') ? HORIZONTAL : VERTICAL;
     mod_nr_destination = stoi(mod_destination_str.substr(1));
+}
+
+
+bool Edge::link_nodes(std::unordered_map<std::string, Node*> & nodes_namespace){
+
+    // link source node
+    if(nodes_namespace.find(source_name) == nodes_namespace.end()){
+	print_linker_error("Source node \"" + source_name + "\" could not be found.");
+	return false;
+    }
+
+    if( ! nodes_namespace[source_name]->has_output()){
+	print_linker_error("Node \"" + source_name + "\" cannot be used as source.");
+	return false;
+    }
+
+    source = nodes_namespace[source_name];
+    
+    // link destination node
+    if(nodes_namespace.find(destination_name) == nodes_namespace.end()){
+	print_linker_error("Destination node \"" + destination_name + "\" could not be found.");
+	return false;
+    }
+
+    if( ! nodes_namespace[destination_name]->has_input()){
+	print_linker_error("Node \"" + destination_name + "\" cannot be used as destination.");
+	return false;
+    }
+
+    destination = nodes_namespace[destination_name];
+    
+    return true;
 }
