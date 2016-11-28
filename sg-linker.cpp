@@ -67,6 +67,17 @@ bool link_edges_to_nodes(std::vector<Edge*> & edges, Node_namespace node_namespa
 }
 
 
+// takes the AST and adds the links
+// in the nodes that turn it in to
+// the DAG represented by sg code.
+void transform(Group* ast){
+    for(auto e:ast->children_edges){
+	e->source->out_edges.push_back(e);
+	e->destination->in_edges.push_back(e);
+    }
+}
+
+
 // Takes the AST where references are
 // only stored by name and adds the
 // pointers to where Elements are linked
@@ -96,24 +107,68 @@ bool link(Group* ast, Group_namespace group_namespace){
 	    return false;
 	}
     }
+
+    transform(ast);
     
     return true;
 }
 
 
-// takes the AST and adds the links
-// in the nodes that turn it in to
-// the DAG represented by sg code.
-//
-// This function calls itself
-// recursively
-void transform(Group* ast){
-    for(auto e:ast->children_edges){
-	e->source->out_edges.push_back(e);
+
+// Set visited flag on nodes that are reachable
+// from the end when traversing DAG backwards.
+void visit_backwards(Group* ast){
+    // the nodes queue contains nodes from all
+    // levels. This works, because they're
+    // pointers, not name references that are
+    // specific to some scope.    
+    std::queue<Node*> nodes;
+
+    // add overall output node to queue
+    nodes.push(ast->output_node);
+    // add outfile nodes to queue
+    for(auto n:ast->children_io_nodes){
+	if(n->io_type == OUTPUT){
+	    nodes.push(n);
+	}
     }
 
-    for(auto g:ast->children_groups){
-	transform(g);
+    while( ! nodes.empty()){
+	Node* n = nodes.front();
+	nodes.pop();
+
+	if(n->visited){
+	    continue;
+	}
+	n->visited = true;
+
+	if(n->node_type == INSTANCE_NODE){
+	    // visit group
+	    Instance_node* instance_node = static_cast<Instance_node*>(n);
+	    nodes.push(instance_node->group->output_node);
+	}
+
+	for(auto in_edge:n->in_edges){
+	    nodes.push(in_edge->source);
+	}
     }
 }
 
+
+std::pair<std::vector<Node*>, std::vector<Group*> > check_for_unvisited(Group* ast){
+    
+}
+
+
+
+// This function will traverse the DAG to check
+// if input to output is connected.
+// If fail_on_warn is set, the function will
+// treat a warning (unused node) as error.
+void traversal(Group* ast, bool fail_on_warn){
+    // set visited flags on nodes that reach output
+    visit_backwards(ast);
+
+    // check for unvisited nodes
+    
+}

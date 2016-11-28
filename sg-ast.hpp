@@ -14,7 +14,7 @@
 
 enum Io_type{INPUT, OUTPUT};
 enum Name_modifier{INVERSE, HORIZONTAL, VERTICAL, NONE};
-
+enum Node_type{IO_NODE, STDIO_NODE, BASH_NODE, INSTANCE_NODE};
 
 struct Node;
 struct Edge;
@@ -22,6 +22,9 @@ struct Group;
 
 struct Node{
     std::string name;
+    Node_type node_type;
+
+    bool visited;
     
     bool has_input();
     bool has_output();
@@ -41,6 +44,8 @@ struct Node{
     // information such as shadow node
     // modifiers.
     std::vector<Edge*> out_edges;
+
+    std::vector<Edge*> in_edges;
 };
 
 struct Bash_node:Node{

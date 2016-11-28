@@ -6,10 +6,8 @@
 #ifndef SG_LINKER_HPP
 #define SG_LINKER_HPP
 
-
 bool link(Group* ast, Group_namespace group_namespace);
 
-void transform(Group* ast);
-
+void traversal(Group* ast);
 
 #endif
