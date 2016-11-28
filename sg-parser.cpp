@@ -1,6 +1,5 @@
 #include<bits/stdc++.h>
 #include "sg-parser.hpp"
-#define token std::pair<std::string, std::string> // {token type, token content}
 
 
 void print_parse_error(std::string message){
@@ -10,8 +9,14 @@ void print_parse_error(std::string message){
 
 // Takes a stream of tokens and translates
 // it in to the basic AST
+// This function is not called recursively,
+// instead an internal stack is used to
+// keep track of nested groups
 Group* parse(std::vector<token> tokens){
     Group* out;
+
+    out->input_node = new Stdio_node(INPUT);
+    out->output_node = new Stdio_node(OUTPUT);
     
     std::stack<Group*> current_stack;
     current_stack.push(out);
@@ -32,7 +37,7 @@ Group* parse(std::vector<token> tokens){
 	}
 	else if(t.first == "group_close"){
 	    current_stack.pop();
-	    if(current_stack.size() < 1){
+	    if(current_stack.size() == 1){
 		print_parse_error("Found '}' but no group is currently open.");
 		return 0;
 	    }
@@ -60,6 +65,10 @@ Group* parse(std::vector<token> tokens){
 		current_stack.top()->children_instance_nodes.push_back(n);
 	    }
 	    else if(node_data.first == "infile" || node_data.first == "outfile"){
+		if(current_stack.size() > 1){
+		    print_parse_error("Can't add file io nodes in a group.");
+		    return 0;
+		}
 		int file_number = stoi(node_data.second);
 		Io_node* n = new Io_node(node_data.first, file_number);
 		n->name = t.second;

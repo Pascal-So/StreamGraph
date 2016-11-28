@@ -21,9 +21,17 @@ int main(){
 
     Group* ast = parse(result);
 
+    if (ast == 0){
+	return 1;
+    }
+    
     // create an empty namespace to start the linker method
     Group_namespace gn;
-    link(ast, gn);
+    if ( ! link(ast, gn)){
+	return 1;
+    }
+
+    transform(ast);
     
     for(auto t:result){
 	std::cout<< t.first << "\t" << t.second<<"\n";

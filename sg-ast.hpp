@@ -79,6 +79,8 @@ struct Stdio_node:Node{
     
     bool has_input();
     bool has_output();
+
+    Stdio_node(Io_type io_type);
 };
 
 struct Edge{

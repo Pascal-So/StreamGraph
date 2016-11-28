@@ -9,7 +9,7 @@
 
 bool link(Group* ast, Group_namespace group_namespace);
 
-bool transform(Group* ast);
+void transform(Group* ast);
 
 
 #endif

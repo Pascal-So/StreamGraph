@@ -48,6 +48,10 @@ bool Io_node::has_output(){
 }
 
 
+Stdio_node::Stdio_node(Io_type io_type):io_type(io_type){
+    
+}
+
 bool Stdio_node::has_input(){
     return io_type == INPUT;
 }

@@ -1,6 +1,5 @@
 #include<bits/stdc++.h>
 #include "sg-linker.hpp"
-#include "sg-ast.hpp"
 #define Node_namespace std::unordered_map<std::string, Node*>
 #define Group_namespace std::unordered_map<std::string, Group*>
 
@@ -89,8 +88,9 @@ bool link(Group* ast, Group_namespace group_namespace){
 	return false;
     }
 
-    for(auto g:children_groups){
-	if( ! link(g)){
+    // call recursively for subgroups
+    for(auto g : ast->children_groups){
+	if( ! link(g, group_namespace)){
 	    // something has gone wrong in the
 	    // sub group. Fail entire compilation
 	    return false;
@@ -104,9 +104,16 @@ bool link(Group* ast, Group_namespace group_namespace){
 // takes the AST and adds the links
 // in the nodes that turn it in to
 // the DAG represented by sg code.
-bool transform(Group* ast){
+//
+// This function calls itself
+// recursively
+void transform(Group* ast){
+    for(auto e:ast->children_edges){
+	e->source->out_edges.push_back(e);
+    }
 
-    
-    
-    return true;
+    for(auto g:ast->children_groups){
+	transform(g);
+    }
 }
+
