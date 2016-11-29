@@ -172,36 +172,63 @@ void reset_group_visited(Group* ast_root){
 }
 
 
-std::pair<std::vector<Group*>, std::vector<Node*> > check_for_unvisited(Group* current_group){
+
+template<typename T, typename U>
+void vector_append(std::vector<T> &a, std::vector<U> &b){
+    a.insert(a.end(), b.begin(), b.end());
+}
+
+
+
+std::pair<  std::vector<Group*>,   std::vector<std::pair<Node*,std::stack<Group*> > >     >
+check_for_unvisited(Group* current_group, std::stack<Group*> group_stack){
+
+    // the current group is not contained in the group stack when the
+    // function is called. This makes handling subgroups easier.
+    group_stack.push(current_group);
+    
     std::vector<Group*> groups_with_no_visited_nodes;
-    std::vector<Node*> unvisited_nodes;
+    std::vector<std::pair<Node*, std::stack<Group*> > > unvisited_nodes; // {node pointer, group stack}
 
     if(current_group->visited){
 	// already been here. Return empty result.
 	return {groups_with_no_visited_nodes, unvisited_nodes};
     }
 
-
     // have any nodes in the current group been visited so far?
     bool nodes_visited = false;
 
     // collect all subnodes to make it easier to iterate over them.
     std::vector<Node*> subnodes;
-    subnodes.insert(subnodes.end(),
-		    current_group->children_bash_nodes.begin(),
-		    current_group->children_bash_nodes.end());
-    subnodes.insert(subnodes.end(),
-		    current_group->children_instance_nodes.begin(),
-		    current_group->children_instance_nodes.end());
-    subnodes.insert(subnodes.end(),
-		    current_group->children_io_nodes.begin(),
-		    current_group->children_io_nodes.end());
+    vector_append(subnodes, current_group->children_bash_nodes);
+    vector_append(subnodes, current_group->children_io_nodes);
+    vector_append(subnodes, current_group->children_instance_nodes);
+    subnodes.push_back(current_group->input_node);
+    subnodes.push_back(current_group->output_node);
     
     for(auto n:subnodes){
 	if(n->visited){
 	    nodes_visited = true; 
 	}else{
-	    unvisited_nodes.push_back(n);
+	    // the node `n` has not been visited. Add it to
+	    // the vector, along with the group stack. The
+	    // group stack contains the current group, because
+	    // it was added at the top of the function.
+	    unvisited_nodes.push_back({n, group_stack});
+	}
+    }
+
+    if( ! nodes_visited){
+	// no nodes in the current group have been visited, the entire
+	// group can be removed.
+	groups_with_no_visited_nodes.push_back(current_group);
+    }else{
+	// only if some nodes in the current group have been visited
+	// it is possible that some subgroup have been visited.
+	for(auto g:current_group->children_groups){
+	    auto result_recursive_call = check_for_unvisited(g, group_stack);
+	    vector_append(groups_with_no_visited_nodes, result_recursive_call.first);
+	    vector_append(unvisited_nodes, result_recursive_call.second);
 	}
     }
 
@@ -209,21 +236,48 @@ std::pair<std::vector<Group*>, std::vector<Node*> > check_for_unvisited(Group* c
 }
 
 
+std::string format_group_stack(std::stack<Group*> stack){
+    std::vector<std::string> names;
+    while(! stack.empty()){
+	Group* g = stack.top();
+	stack.pop();
+	names.push_back(g->name);
+    }
+
+    std::reverse(names.begin(), names.end());
+
+    return accumulate(names.begin(), names.end(), std::string("/"));
+}
+
 
 // This function will traverse the DAG to check
 // if input to output is connected.
 // If fail_on_warn is set, the function will
 // treat a warning (unused node) as error.
-void traversal(Group* ast_root, bool fail_on_warn){
+bool traversal(Group* ast_root, bool fail_on_warn){
     // set visited flags on nodes that reach output
     reset_group_visited(ast_root);
     visit_backwards(ast_root);
 
-
     // check for unvisited nodes and groups
     // with no visited nodes
     reset_group_visited(ast_root);
-    check_for_unvisited(ast_root);
+    std::stack<Group*> empty_group_stack;
+    auto unvisited_groups_and_nodes = check_for_unvisited(ast_root, empty_group_stack);
 
-    
+    if( ! (unvisited_groups_and_nodes.first.empty() && unvisited_groups_and_nodes.second.empty())){
+	// some parts are unvisited
+	std::cerr<<"WARNING: some nodes and groups are not used:\n";
+	for(auto g:unvisited_groups_and_nodes.first ){
+	    std::cerr<<"    Group " << g->name << "\n";
+	}
+	for(auto n:unvisited_groups_and_nodes.second ){
+	    std::cerr<<"    Node " << format_group_stack(n.second) << "/" <<  n.first->name << "\n";
+	}
+
+	// stop the compilation if fail_on_warn is set
+	if(fail_on_warn) return false;
+    }
+
+    return true;
 }
