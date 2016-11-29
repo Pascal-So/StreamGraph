@@ -25,9 +25,14 @@ struct Node{
     Node_type node_type;
 
     bool visited;
+
+    // is set to true by default because if
+    // the node is never even visited by the
+    // dfs we know that it cannot be reached.
+    bool can_be_deleted;
     
-    bool has_input();
-    bool has_output();
+    bool is_input();
+    bool is_output();
     
     // is modifier .inv applicable? Defaults to
     // false, overridden by Bash_node if known
@@ -60,8 +65,8 @@ struct Io_node:Node{
     Io_type io_type;
     int number;
 
-    bool has_input();
-    bool has_output();
+    bool is_input();
+    bool is_output();
 
     Io_node(std::string io_type, int number);
 };
@@ -82,8 +87,8 @@ struct Instance_node:Node{
 struct Stdio_node:Node{
     Io_type io_type;
     
-    bool has_input();
-    bool has_output();
+    bool is_input();
+    bool is_output();
 
     Stdio_node(Io_type io_type);
 };
@@ -110,7 +115,7 @@ struct Edge{
 };
 
 struct Group{
-    bool visited; //used by sg-linker -> link
+    bool visited; //used by sg-linker -> link to avoid infinite loop
     bool input_output_connected;
     std::string name;
     std::vector<Group*> children_groups;

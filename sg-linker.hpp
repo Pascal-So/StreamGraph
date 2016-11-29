@@ -8,6 +8,6 @@
 
 bool link(Group* ast, Group_namespace group_namespace);
 
-void traversal(Group* ast);
+bool traversal(Group* ast, bool fail_on_warn);
 
 #endif

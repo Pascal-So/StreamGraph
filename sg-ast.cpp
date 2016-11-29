@@ -8,13 +8,13 @@ void print_linker_error(std::string message){
 }
 
 
-bool Node::has_input(){
-    return true;
+bool Node::is_input(){
+    return false;
 }
 
 
-bool Node::has_output(){
-    return true;
+bool Node::is_output(){
+    return false;
 }
 
 
@@ -30,6 +30,7 @@ bool Node::link_groups(std::unordered_map<std::string, Group*> & ){
 
 Bash_node::Bash_node(std::string bash_command):bash_command(bash_command){
     visited = false;
+    can_be_deleted = true;
     node_type = BASH_NODE;
 }
 
@@ -37,37 +38,40 @@ Bash_node::Bash_node(std::string bash_command):bash_command(bash_command){
 Io_node::Io_node(std::string io_type_str, int number):number(number){
     io_type = (io_type_str == "infile") ? INPUT : OUTPUT;
     visited = false;
+    can_be_deleted = true;
     node_type = IO_NODE;
 }
 
 
-bool Io_node::has_input(){
+bool Io_node::is_input(){
     return io_type == INPUT;
 }
 
 
-bool Io_node::has_output(){
+bool Io_node::is_output(){
     return io_type == OUTPUT;
 }
 
 
 Stdio_node::Stdio_node(Io_type io_type):io_type(io_type){
     visited = false;
+    can_be_deleted = true;
     node_type = STDIO_NODE;
 }
 
-bool Stdio_node::has_input(){
+bool Stdio_node::is_input(){
     return io_type == INPUT;
 }
 
 
-bool Stdio_node::has_output(){
+bool Stdio_node::is_output(){
     return io_type == OUTPUT;
 }
 
 
 Instance_node::Instance_node(std::string group_name):group_name(group_name){
     visited = false;
+    can_be_deleted = true;
     node_type = INSTANCE_NODE;
 }
 
@@ -106,7 +110,7 @@ bool Edge::link_nodes(std::unordered_map<std::string, Node*> & nodes_namespace){
 	return false;
     }
 
-    if( ! nodes_namespace[source_name]->has_output()){
+    if(nodes_namespace[source_name]->is_output()){
 	print_linker_error("Node \"" + source_name + "\" cannot be used as source.");
 	return false;
     }
@@ -119,7 +123,7 @@ bool Edge::link_nodes(std::unordered_map<std::string, Node*> & nodes_namespace){
 	return false;
     }
 
-    if( ! nodes_namespace[destination_name]->has_input()){
+    if(nodes_namespace[destination_name]->is_input()){
 	print_linker_error("Node \"" + destination_name + "\" cannot be used as destination.");
 	return false;
     }

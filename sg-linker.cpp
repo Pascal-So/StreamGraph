@@ -123,46 +123,70 @@ bool link(Group* current_group, Group_namespace group_namespace){
 }
 
 
+// ------------ from here on graph checking stuff --------------
 
 
-// Set visited flag on nodes that are reachable
-// from the end when traversing DAG backwards.
-void visit_backwards(Group* ast_root){
-    // the nodes queue contains nodes from all
-    // levels. This works, because they're
-    // pointers, not name references that are
-    // specific to some scope.    
-    std::queue<Node*> nodes;
 
-    // add overall output node to queue
-    nodes.push(ast_root->output_node);
-    // add outfile nodes to queue
-    for(auto n:ast_root->children_io_nodes){
-	if(n->io_type == OUTPUT){
-	    nodes.push(n);
-	}
+
+void reset_visited_nodes(Group* ast_node){
+    for(auto n:ast_node->children_bash_nodes){
+	n->visited = false;
     }
-
-    while( ! nodes.empty()){
-	Node* n = nodes.front();
-	nodes.pop();
-
-	if(n->visited){
-	    continue;
-	}
-	n->visited = true;
-
-	if(n->node_type == INSTANCE_NODE){
-	    // visit group
-	    Instance_node* instance_node = static_cast<Instance_node*>(n);
-	    nodes.push(instance_node->group->output_node);
-	}
-
-	for(auto in_edge:n->in_edges){
-	    nodes.push(in_edge->source);
-	}
+    for(auto n:ast_node->children_io_nodes){
+	n->visited = false;
     }
+    for(auto n:ast_node->children_instance_nodes){
+	n->visited = false;
+    }
+    ast_node->input_node->visited = false;
+    ast_node->output_node->visited = false;
 }
+
+
+bool dfs_reaches_output(Node* n){
+    if(n->visited){
+	return ! n->can_be_deleted;
+    }
+    n->visited = true;
+    
+    if (n->is_output()){
+	// reached an output
+	return true;
+    }
+
+    bool reaches_output = false;
+    for(auto out_edge:n->out_edges){
+	reaches_output |= dfs_reaches_output(out_edge->destination);
+    }
+
+    // flag to delete node if it is not on a path
+    // from input to output.
+    n->can_be_deleted = ! reaches_output;
+    
+    return reaches_output;
+}
+
+
+bool check_connected(Group* ast_node){
+    reset_visited_nodes(ast_node);
+
+    bool connected = false;
+    for(auto n:ast_node->children_io_nodes){
+	if(n->is_input()){
+	    connected |= dfs_reaches_output(n);
+	}
+    }
+    connected |= dfs_reaches_output(ast_node->input_node);
+
+    return connected;
+}
+
+
+
+
+
+
+
 
 
 void reset_group_visited(Group* ast_root){
@@ -173,7 +197,11 @@ void reset_group_visited(Group* ast_root){
 }
 
 
-
+// Different typenames are possible if a vector of derived
+// class pointers is appended to a vector of base class
+// pointers. This leads to ugly gcc error messages though
+// if the function is used uncorrectly, so I might have
+// to change this.
 template<typename T, typename U>
 void vector_append(std::vector<T> &a, std::vector<U> &b){
     a.insert(a.end(), b.begin(), b.end());
@@ -181,60 +209,6 @@ void vector_append(std::vector<T> &a, std::vector<U> &b){
 
 
 
-std::pair<  std::vector<Group*>,   std::vector<std::pair<Node*,std::stack<Group*> > >     >
-check_for_unvisited(Group* current_group, std::stack<Group*> group_stack){
-
-    // the current group is not contained in the group stack when the
-    // function is called. This makes handling subgroups easier.
-    group_stack.push(current_group);
-    
-    std::vector<Group*> groups_with_no_visited_nodes;
-    std::vector<std::pair<Node*, std::stack<Group*> > > unvisited_nodes; // {node pointer, group stack}
-
-    if(current_group->visited){
-	// already been here. Return empty result.
-	return {groups_with_no_visited_nodes, unvisited_nodes};
-    }
-
-    // have any nodes in the current group been visited so far?
-    bool nodes_visited = false;
-
-    // collect all subnodes to make it easier to iterate over them.
-    std::vector<Node*> subnodes;
-    vector_append(subnodes, current_group->children_bash_nodes);
-    vector_append(subnodes, current_group->children_io_nodes);
-    vector_append(subnodes, current_group->children_instance_nodes);
-    subnodes.push_back(current_group->input_node);
-    subnodes.push_back(current_group->output_node);
-    
-    for(auto n:subnodes){
-	if(n->visited){
-	    nodes_visited = true; 
-	}else{
-	    // the node `n` has not been visited. Add it to
-	    // the vector, along with the group stack. The
-	    // group stack contains the current group, because
-	    // it was added at the top of the function.
-	    unvisited_nodes.push_back({n, group_stack});
-	}
-    }
-
-    if( ! nodes_visited){
-	// no nodes in the current group have been visited, the entire
-	// group can be removed.
-	groups_with_no_visited_nodes.push_back(current_group);
-    }else{
-	// only if some nodes in the current group have been visited
-	// it is possible that some subgroup have been visited.
-	for(auto g:current_group->children_groups){
-	    auto result_recursive_call = check_for_unvisited(g, group_stack);
-	    vector_append(groups_with_no_visited_nodes, result_recursive_call.first);
-	    vector_append(unvisited_nodes, result_recursive_call.second);
-	}
-    }
-
-    return {groups_with_no_visited_nodes, unvisited_nodes};
-}
 
 
 std::string format_group_stack(std::stack<Group*> stack){
@@ -261,6 +235,10 @@ void print_unvisited_groups_and_nodes(std::pair<std::vector<Group*>,
 	std::cerr<<"    Node " << format_group_stack(n.second) << "/" <<  n.first->name << "\n";
     }
 }
+
+
+
+
 
 
 // This function will traverse the DAG to check
