@@ -26,10 +26,10 @@ struct Node{
 
     bool visited;
 
-    // is set to true by default because if
+    // is set to false by default because if
     // the node is never even visited by the
     // dfs we know that it cannot be reached.
-    bool can_be_deleted;
+    bool needed;
     
     bool is_input();
     bool is_output();

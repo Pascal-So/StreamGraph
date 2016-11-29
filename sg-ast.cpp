@@ -30,7 +30,7 @@ bool Node::link_groups(std::unordered_map<std::string, Group*> & ){
 
 Bash_node::Bash_node(std::string bash_command):bash_command(bash_command){
     visited = false;
-    can_be_deleted = true;
+    needed = false;
     node_type = BASH_NODE;
 }
 
@@ -38,7 +38,7 @@ Bash_node::Bash_node(std::string bash_command):bash_command(bash_command){
 Io_node::Io_node(std::string io_type_str, int number):number(number){
     io_type = (io_type_str == "infile") ? INPUT : OUTPUT;
     visited = false;
-    can_be_deleted = true;
+    needed = false;
     node_type = IO_NODE;
 }
 
@@ -55,7 +55,7 @@ bool Io_node::is_output(){
 
 Stdio_node::Stdio_node(Io_type io_type):io_type(io_type){
     visited = false;
-    can_be_deleted = true;
+    needed = false;
     node_type = STDIO_NODE;
 }
 
@@ -71,7 +71,7 @@ bool Stdio_node::is_output(){
 
 Instance_node::Instance_node(std::string group_name):group_name(group_name){
     visited = false;
-    can_be_deleted = true;
+    needed = false;
     node_type = INSTANCE_NODE;
 }
 

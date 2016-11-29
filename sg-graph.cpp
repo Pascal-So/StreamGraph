@@ -2,8 +2,15 @@
 #include "sg-graph.hpp"
 
 
-// ------------ from here on graph checking stuff --------------
-
+// Different typenames are possible if a vector of derived
+// class pointers is appended to a vector of base class
+// pointers. This leads to ugly gcc error messages though
+// if the function is used uncorrectly, so I might have
+// to change this.
+template<typename T, typename U>
+void vector_append(std::vector<T> &a, std::vector<U> &b){
+    a.insert(a.end(), b.begin(), b.end());
+}
 
 
 
@@ -24,12 +31,13 @@ void reset_visited_nodes(Group* ast_node){
 
 bool dfs_reaches_output(Node* n){
     if(n->visited){
-	return ! n->can_be_deleted;
+	return n->needed;
     }
     n->visited = true;
     
     if (n->is_output()){
 	// reached an output
+	n->needed = true;
 	return true;
     }
 
@@ -38,15 +46,14 @@ bool dfs_reaches_output(Node* n){
 	reaches_output |= dfs_reaches_output(out_edge->destination);
     }
 
-    // flag to delete node if it is not on a path
-    // from input to output.
-    n->can_be_deleted = ! reaches_output;
+    // flag node as needed because it lies on a path from in to out.
+    n->needed = reaches_output;
     
     return reaches_output;
 }
 
 
-bool check_connected(Group* ast_node){
+bool check_group_connected(Group* ast_node){
     reset_visited_nodes(ast_node);
 
     bool connected = false;
@@ -61,30 +68,36 @@ bool check_connected(Group* ast_node){
 }
 
 
-
-
-
-
-
-
-
-void reset_group_visited(Group* ast_root){
-    ast_root->visited = false;
-    for(auto g:ast_root->children_groups){
+void reset_group_visited(Group* current_group){
+    current_group->visited = false;
+    for(auto g:current_group->children_groups){
 	reset_group_visited(g);
     }
 }
 
-
-// Different typenames are possible if a vector of derived
-// class pointers is appended to a vector of base class
-// pointers. This leads to ugly gcc error messages though
-// if the function is used uncorrectly, so I might have
-// to change this.
-template<typename T, typename U>
-void vector_append(std::vector<T> &a, std::vector<U> &b){
-    a.insert(a.end(), b.begin(), b.end());
+// a group can only be instanciated from a instance
+// node on the same level or one further down. The
+// instanciation further down only matters if the
+// group gets instanciated at least one from the
+// outside. Therefore, to see if a group is needed,
+// we only need to check on the same level.
+void determin_groups_needed(Group* ast_node){
+    for(auto n:ast_node->children_instance_nodes){
+	if(n->needed){
+	    
+	}
+    }
 }
+
+
+
+
+
+
+
+
+
+
 
 
 
