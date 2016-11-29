@@ -3,6 +3,7 @@
 #include "sg-parser.hpp"
 #include "sg-ast.hpp"
 #include "sg-linker.hpp"
+#include "sg-graph.hpp"
 #define token std::pair<std::string, std::string> // token type, token content
 #define Group_namespace std::unordered_map<std::string, Group*>
 
