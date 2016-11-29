@@ -110,7 +110,8 @@ struct Edge{
 };
 
 struct Group{
-    bool visited;
+    bool visited; //used by sg-linker -> link
+    bool input_output_connected;
     std::string name;
     std::vector<Group*> children_groups;
     std::vector<Bash_node*> children_bash_nodes;

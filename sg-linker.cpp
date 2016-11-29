@@ -124,6 +124,7 @@ bool link(Group* current_group, Group_namespace group_namespace){
 
 
 
+
 // Set visited flag on nodes that are reachable
 // from the end when traversing DAG backwards.
 void visit_backwards(Group* ast_root){
@@ -250,6 +251,18 @@ std::string format_group_stack(std::stack<Group*> stack){
 }
 
 
+void print_unvisited_groups_and_nodes(std::pair<std::vector<Group*>,
+				      std::vector<std::pair<Node*,std::stack<Group*> > > > unvisited){
+    std::cerr<<"WARNING: some nodes and groups are not used:\n";
+    for(auto g:unvisited.first ){
+	std::cerr<<"    Group " << g->name << "\n";
+    }
+    for(auto n:unvisited.second ){
+	std::cerr<<"    Node " << format_group_stack(n.second) << "/" <<  n.first->name << "\n";
+    }
+}
+
+
 // This function will traverse the DAG to check
 // if input to output is connected.
 // If fail_on_warn is set, the function will
@@ -267,16 +280,12 @@ bool traversal(Group* ast_root, bool fail_on_warn){
 
     if( ! (unvisited_groups_and_nodes.first.empty() && unvisited_groups_and_nodes.second.empty())){
 	// some parts are unvisited
-	std::cerr<<"WARNING: some nodes and groups are not used:\n";
-	for(auto g:unvisited_groups_and_nodes.first ){
-	    std::cerr<<"    Group " << g->name << "\n";
-	}
-	for(auto n:unvisited_groups_and_nodes.second ){
-	    std::cerr<<"    Node " << format_group_stack(n.second) << "/" <<  n.first->name << "\n";
-	}
+	print_unvisited_groups_and_nodes(unvisited_groups_and_nodes);
 
 	// stop the compilation if fail_on_warn is set
 	if(fail_on_warn) return false;
+
+	// delete unneeded 
     }
 
     return true;
