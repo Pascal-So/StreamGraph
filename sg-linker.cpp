@@ -6,11 +6,13 @@
 // takes a group pointer and an existing group namespace
 // and updates the namespace to contain the subgroups
 // of the referenced group.
-void update_group_namespace(Group* ast_node, Group_namespace & group_namespace){
+Group_namespace add_to_group_namespace(Group* ast_node, Group_namespace group_namespace){
     for(auto sg : ast_node->children_groups){
 	group_namespace[sg->name] = sg;
     }
+    return group_namespace;
 }
+
 
 
 // takes a group pointer and returns the map from name
@@ -73,7 +75,7 @@ bool link_edges_to_nodes(std::vector<Edge*> & edges, Node_namespace node_namespa
 void transform(Group* ast_node){
     for(auto e:ast_node->children_edges){
 	e->source->out_edges.push_back(e);
-	e->destination->in_edges.push_back(e);
+	//e->destination->in_edges.push_back(e);
     }
 }
 
@@ -84,8 +86,14 @@ void transform(Group* ast_node){
 // to by name.
 // this function calls itself recursively
 bool link(Group* current_group, Group_namespace group_namespace){
-    update_group_namespace(current_group, group_namespace);
-    if( ! link_nodes_to_groups(current_group->children_instance_nodes, group_namespace)){
+    // add current group to the namespace.
+    group_namespace[current_group->name] = current_group;
+
+    // add subgroups to new variable `temp_group_namespace`, because
+    // we don't want to modify the original namespace, because we
+    // need to pass down the original namespace to the subgroups.
+    Group_namespace temp_group_namespace = add_to_group_namespace(current_group, group_namespace);
+    if( ! link_nodes_to_groups(current_group->children_instance_nodes, temp_group_namespace)){
 	// linking has failed, probably because of a missing
 	// group or spelling error
 	return false;

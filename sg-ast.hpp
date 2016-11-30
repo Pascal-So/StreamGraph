@@ -24,6 +24,8 @@ struct Node{
     std::string name;
     Node_type node_type;
 
+    virtual ~Node();
+
     bool visited;
 
     // is set to false by default because if
@@ -50,7 +52,7 @@ struct Node{
     // modifiers.
     std::vector<Edge*> out_edges;
 
-    std::vector<Edge*> in_edges;
+    //std::vector<Edge*> in_edges;
 };
 
 struct Bash_node:Node{

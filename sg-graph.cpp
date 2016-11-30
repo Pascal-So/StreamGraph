@@ -1,17 +1,47 @@
 #include<bits/stdc++.h>
 #include "sg-graph.hpp"
 
+// SG graph checks and optimizations
+
+// These functions perform some checks on the graph to
+// eliminate dead ends and unneeded functions. This will
+// lead to smaller compiled files in the end. Maybe this
+// will be deferred to optimization flags later on.
+
+// The responsibilities of these functions:
+// - Check if a path from input to output exists
+// - Remove out_edges on nodes leading to dead ends
+// - Check for cycles
+// - Remove unneeded groups
+//
+// The checks are performed in this order. They happen
+// recursively on every level, starting from the hightest
+// level. This way, nothing gets executed for the groups
+// that aren't needed and the user isn't bothered by
+// unnecessary warnings for groups that exist, but are
+// not connected.
+
+
 
 // Different typenames are possible if a vector of derived
 // class pointers is appended to a vector of base class
 // pointers. This leads to ugly gcc error messages though
-// if the function is used uncorrectly, so I might have
+// if the function is used incorrectly, so I might have
 // to change this.
 template<typename T, typename U>
 void vector_append(std::vector<T> &a, std::vector<U> &b){
     a.insert(a.end(), b.begin(), b.end());
 }
 
+
+template<typename T, typename U>
+std::vector<T> vector_cast(std::vector<U> in){
+    std::vector<T> out;
+    for(auto e:in){
+	out.push_back(static_cast<T>(e));
+    }
+    return out;
+}
 
 
 void reset_visited_nodes(Group* ast_node){
@@ -29,11 +59,24 @@ void reset_visited_nodes(Group* ast_node){
 }
 
 
+
+// This function doesn't specifically check for cycles,
+// but it is robust to cycles and will not result in
+// undefined behaviour.
 bool dfs_reaches_output(Node* n){
     if(n->visited){
 	return n->needed;
     }
     n->visited = true;
+
+    // this is needed in case of cycles. If the
+    // dfs reaches this node before the function
+    // has finished for this node again , we want
+    // to return false for output reaching, because
+    // if there is a path to the output it will
+    // still be found, but we don't want the cycle
+    // to incorrectly return true.
+    n->needed = false;
     
     if (n->is_output()){
 	// reached an output
@@ -52,6 +95,49 @@ bool dfs_reaches_output(Node* n){
     return reaches_output;
 }
 
+void dfs_remove_dead_out_edges(Node* n){
+    if(! n->needed){
+	// don't need to do anything on unneeded nodes,
+	// they'll get removed anyway.
+	return;
+    }
+
+    // copy only the out edges that point to nodes that
+    // are needed.
+    std::vector<Edge*> new_out_edges;
+    for(auto e:n->out_edges){
+	if(e->destination->needed){
+	    new_out_edges.push_back(e);
+	}
+    }
+    n->out_edges = new_out_edges;
+}
+
+
+std::vector<Node*> cleanup_nodes_vector(std::vector<Node*> nodes){
+    int i = 0;
+    for(auto & n:nodes){
+	if(! n->needed){
+	    // base class destructor has to be virtual,
+	    // otherwise this results in undefined
+	    // behaviour
+	    delete n;
+	}else{
+	    nodes[i] = n;
+	    ++i;
+	}
+    }
+    nodes.resize(i);
+    return nodes;
+}
+
+
+void remove_unneeded_nodes(Group* ast_node){
+    auto bash_nodes = cleanup_nodes_vector(vector_cast<Node*>(ast_node->children_bash_nodes));
+    auto instance_nodes = cleanup_nodes_vector(vector_cast<Node*>(ast_node->children_io_nodes));
+    auto io_nodes = cleanup_nodes_vector(vector_cast<Node*>(ast_node->children_instance_nodes));
+    
+}
 
 bool check_group_connected(Group* ast_node){
     reset_visited_nodes(ast_node);
@@ -81,15 +167,13 @@ void reset_group_visited(Group* current_group){
 // group gets instanciated at least one from the
 // outside. Therefore, to see if a group is needed,
 // we only need to check on the same level.
-void determin_groups_needed(Group* ast_node){
+void determine_groups_needed(Group* ast_node){
     for(auto n:ast_node->children_instance_nodes){
 	if(n->needed){
 	    
 	}
     }
 }
-
-
 
 
 

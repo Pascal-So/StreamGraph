@@ -7,6 +7,7 @@ void print_linker_error(std::string message){
     std::cerr<<"LINKER ERROR: " << message << "\n";
 }
 
+Node::~Node(){}
 
 bool Node::is_input(){
     return false;
