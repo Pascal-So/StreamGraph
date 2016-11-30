@@ -33,7 +33,8 @@ void vector_append(std::vector<T> &a, std::vector<U> &b){
     a.insert(a.end(), b.begin(), b.end());
 }
 
-
+// might be deleted, as it's not needed right now, but
+// maybe in the fututre
 template<typename T, typename U>
 std::vector<T> vector_cast(std::vector<U> in){
     std::vector<T> out;
@@ -114,7 +115,9 @@ void dfs_remove_dead_out_edges(Node* n){
 }
 
 
-std::vector<Node*> cleanup_nodes_vector(std::vector<Node*> nodes){
+// T should be a derived node like Bash_node
+template<typename T>
+void cleanup_nodes_vector(std::vector<T*> & nodes){
     int i = 0;
     for(auto & n:nodes){
 	if(! n->needed){
@@ -128,16 +131,28 @@ std::vector<Node*> cleanup_nodes_vector(std::vector<Node*> nodes){
 	}
     }
     nodes.resize(i);
-    return nodes;
 }
 
 
+
+// This function has to be called after dfs_remove_dead_out_edges,
+// because otherwise the pointers in the out_edges vector might
+// refer to deleted objects.
 void remove_unneeded_nodes(Group* ast_node){
-    auto bash_nodes = cleanup_nodes_vector(vector_cast<Node*>(ast_node->children_bash_nodes));
-    auto instance_nodes = cleanup_nodes_vector(vector_cast<Node*>(ast_node->children_io_nodes));
-    auto io_nodes = cleanup_nodes_vector(vector_cast<Node*>(ast_node->children_instance_nodes));
-    
+    cleanup_nodes_vector(ast_node->children_bash_nodes);
+    cleanup_nodes_vector(ast_node->children_instance_nodes);
+    cleanup_nodes_vector(ast_node->children_io_nodes);
+    if( ! ast_node->input_node->needed ){
+	delete ast_node->input_node;
+	ast_node->input_node = 0;
+    }
+    if( ! ast_node->output_node->needed ){
+	delete ast_node->output_node;
+	ast_node->output_node = 0;
+    }
 }
+
+
 
 bool check_group_connected(Group* ast_node){
     reset_visited_nodes(ast_node);
