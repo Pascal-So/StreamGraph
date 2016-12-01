@@ -4,8 +4,6 @@
 #ifndef SG_GRAPH_HPP
 #define SG_GRAPH_HPP
 
-
-bool traversal(Group* ast, bool fail_on_warn);
-
+bool groups_check(Group* current_group, std::stack<Group*> current_group_stack);
 
 #endif

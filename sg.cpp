@@ -32,7 +32,7 @@ int main(){
 	return 1;
     }
 
-    traversal(ast, false);
+    //traversal(ast, false);
     
     for(auto t:result){
 	std::cout<< t.first << "\t" << t.second<<"\n";

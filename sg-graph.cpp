@@ -22,48 +22,100 @@
 // not connected.
 
 
-
-// Different typenames are possible if a vector of derived
-// class pointers is appended to a vector of base class
-// pointers. This leads to ugly gcc error messages though
-// if the function is used incorrectly, so I might have
-// to change this.
+// helper functions:
 template<typename T, typename U>
-void vector_append(std::vector<T> &a, std::vector<U> &b){
-    a.insert(a.end(), b.begin(), b.end());
+void vector_append(std::vector<T> &a, std::vector<U> &b);
+
+void reset_visited_nodes(Group* ast_node);
+
+std::string format_group_stack(std::stack<Group*> stack);
+
+
+// check if path form input to output exists
+bool check_group_connected(Group* ast_node);
+
+// remove unneeded nodes
+void dfs_remove_dead_out_edges(Node* n);
+void remove_unneeded_nodes(Group* ast_node);
+
+// remove cycles
+std::vector<Node*> dfs_check_cycles(Node* n);
+
+// remove unneeded groups
+void remove_unneeded_groups(Group* ast_node);
+
+
+// main functions ----------------------------------------------------------------------------------
+
+// returns false in case of error. Prints error messages.
+bool group_check(Group* ast_node, std::string location){
+    bool connected = check_group_connected(ast_node);
+    if( ! connected){
+	std::cerr<< "ERROR in " << location << ": No path from input to output.\n";
+	return false;
+    }
+
+    // remove the out edges leading to dead nodes from every input point
+    auto input_nodes = ast_node->list_inputs();
+    for(auto n:input_nodes){
+	dfs_remove_dead_out_edges(n);
+    }
+    
+    remove_unneeded_nodes(ast_node);
+
+
+    // check for cycles
+    reset_visited_nodes(ast_node);
+    std::vector<Node*> cycle;
+    input_nodes = ast_node->list_inputs();
+    for(auto n:input_nodes){
+	cycle = dfs_check_cycles(n);
+	if( ! cycle.empty()){
+	    // found a cycle, stop checking any further.
+	    break;
+	}
+    }
+    if(! cycle.empty()){
+	// found a cycle
+	std::cerr<<"ERROR in " << location << ": The program forms an infinite loop.\n";
+	for(auto n:cycle){
+	    std::cerr<<"  " << n->name << "\n";
+	}
+	return false;
+    }
+
+    remove_unneeded_groups(ast_node);
+    
+    return true;
 }
 
-// might be deleted, as it's not needed right now, but
-// maybe in the fututre
-// template<typename T, typename U>
-// std::vector<T> vector_cast(std::vector<U> in){
-//     std::vector<T> out;
-//     for(auto e:in){
-// 	out.push_back(static_cast<T>(e));
-//     }
-//     return out;
-// }
 
+bool groups_check(Group* current_group, std::stack<Group*> current_group_stack){
+    current_group_stack.push(current_group);
 
-void reset_visited_nodes(Group* ast_node){
-    for(auto n:ast_node->children_bash_nodes){
-	n->visited = false;
-	n->cycle_dfs_active = false;
+    std::string location = format_group_stack(current_group_stack);
+    
+    if(! group_check(current_group, location)){
+	return false;
     }
-    for(auto n:ast_node->children_io_nodes){
-	n->visited = false;
-	n->cycle_dfs_active = false;
+    
+    for(auto g:current_group->children_groups){
+	if( ! group_check(g, location)){
+	    return false;
+	}
     }
-    for(auto n:ast_node->children_instance_nodes){
-	n->visited = false;
-	n->cycle_dfs_active = false;
-    }
-    ast_node->input_node->visited = false;
-    ast_node->input_node->cycle_dfs_active = false;
-    ast_node->output_node->visited = false;
-    ast_node->output_node->cycle_dfs_active = false;
+
+    return true;
 }
 
+
+
+
+// implementations -----------------------------------------------------------------
+
+
+
+// 1 - CHECK IF A PATH FROM INPUT TO OUTPUT EXISTS ----------------------------------
 
 
 // This function doesn't specifically check for cycles,
@@ -105,6 +157,26 @@ bool dfs_reaches_output(Node* n){
     return reaches_output;
 }
 
+
+bool check_group_connected(Group* ast_node){
+    reset_visited_nodes(ast_node);
+
+    bool connected = false;
+    auto input_nodes = ast_node->list_inputs();
+    // check file input nodes
+    for(auto n:input_nodes){
+	connected |= dfs_reaches_output(n);
+    }
+
+    return connected;
+}
+
+
+
+// 2 - REMOVE OUT_EDGES ON NODES LEADING TO DEAD ENDS -----------------------------
+
+
+
 void dfs_remove_dead_out_edges(Node* n){
     if(! n->needed){
 	// don't need to do anything on unneeded nodes,
@@ -143,7 +215,6 @@ void cleanup_nodes_vector(std::vector<T*> & nodes){
 }
 
 
-
 // This function has to be called after dfs_remove_dead_out_edges,
 // because otherwise the pointers in the out_edges vector might
 // refer to deleted objects.
@@ -162,27 +233,8 @@ void remove_unneeded_nodes(Group* ast_node){
 }
 
 
-bool check_group_connected(Group* ast_node){
-    reset_visited_nodes(ast_node);
+// 3 - CHECK FOR CYCLES -------------------------------------------------------
 
-    bool connected = false;
-    auto input_nodes = ast_node->list_inputs();
-    // check file input nodes
-    for(auto n:input_nodes){
-	connected |= dfs_reaches_output(n);
-    }
-
-    return connected;
-}
-
-
-// currently not needed.
-// void reset_group_visited(Group* current_group){
-//     current_group->visited = false;
-//     for(auto g:current_group->children_groups){
-// 	reset_group_visited(g);
-//     }
-// }
 
 
 // if a cycle is encountered this returns the
@@ -237,6 +289,11 @@ std::vector<Node*> dfs_check_cycles(Node* n){
 }
 
 
+
+// 4 - REMOVE UNNEEDED GROUPS -------------------------------------------------
+
+
+
 // a group can only be instanciated from a instance
 // node on the same level or one further down. The
 // instanciation further down only matters if the
@@ -267,6 +324,7 @@ void determine_groups_needed(Group* ast_node){
 
 
 void remove_unneeded_groups(Group* ast_node){
+    determine_groups_needed(ast_node);
     std::vector<Group*> needed_groups;
     for(auto & g:ast_node->children_groups){
 	if( ! g->needed){
@@ -282,60 +340,39 @@ void remove_unneeded_groups(Group* ast_node){
 }
 
 
-// returns false in case of error. Prints error messages.
-bool group_check(Group* ast_node, std::string location){
-    bool connected = check_group_connected(ast_node);
-    if( ! connected){
-	std::cerr<< "ERROR in " << location << ": No path from input to output.\n";
-	return false;
-    }
 
-    // remove the out edges leading to dead nodes from every input point
-    auto input_nodes = ast_node->list_inputs();
-    for(auto n:input_nodes){
-	dfs_remove_dead_out_edges(n);
-    }
-    
-    remove_unneeded_nodes(ast_node);
+// helper functions -------------------------------------------------------
 
 
-    // check for cycles
-    reset_visited_nodes(ast_node);
-    std::vector<Node*> cycle;
-    input_nodes = ast_node->list_inputs();
-    for(auto n:input_nodes){
-	cycle = dfs_check_cycles(n);
-	if( ! cycle.empty()){
-	    // found a cycle, stop checking any further.
-	    break;
-	}
-    }
-    if(! cycle.empty()){
-	// found a cycle
-	std::cerr<<"ERROR in " << location << ": The program forms an infinite loop.\n";
-	for(auto n:cycle){
-	    std::cerr<<"  " << n->name << "\n";
-	}
-	return false;
-    }
-
-    determine_groups_needed(ast_node);
-    remove_unneeded_groups(ast_node);
-    
-    return true;
+// Different typenames are possible if a vector of derived
+// class pointers is appended to a vector of base class
+// pointers. This leads to ugly gcc error messages though
+// if the function is used incorrectly, so I might have
+// to change this.
+template<typename T, typename U>
+void vector_append(std::vector<T> &a, std::vector<U> &b){
+    a.insert(a.end(), b.begin(), b.end());
 }
 
 
-bool groups_check(Group* current_group){
-    
+void reset_visited_nodes(Group* ast_node){
+    for(auto n:ast_node->children_bash_nodes){
+	n->visited = false;
+	n->cycle_dfs_active = false;
+    }
+    for(auto n:ast_node->children_io_nodes){
+	n->visited = false;
+	n->cycle_dfs_active = false;
+    }
+    for(auto n:ast_node->children_instance_nodes){
+	n->visited = false;
+	n->cycle_dfs_active = false;
+    }
+    ast_node->input_node->visited = false;
+    ast_node->input_node->cycle_dfs_active = false;
+    ast_node->output_node->visited = false;
+    ast_node->output_node->cycle_dfs_active = false;
 }
-
-
-
-
-
-
-
 
 
 std::string format_group_stack(std::stack<Group*> stack){
@@ -349,29 +386,4 @@ std::string format_group_stack(std::stack<Group*> stack){
     std::reverse(names.begin(), names.end());
 
     return accumulate(names.begin(), names.end(), std::string("/"));
-}
-
-
-void print_unvisited_groups_and_nodes(std::pair<std::vector<Group*>,
-				      std::vector<std::pair<Node*,std::stack<Group*> > > > unvisited){
-    std::cerr<<"WARNING: some nodes and groups are not used:\n";
-    for(auto g:unvisited.first ){
-	std::cerr<<"    Group " << g->name << "\n";
-    }
-    for(auto n:unvisited.second ){
-	std::cerr<<"    Node " << format_group_stack(n.second) << "/" <<  n.first->name << "\n";
-    }
-}
-
-
-
-
-
-
-// This function will traverse the DAG to check
-// if input to output is connected.
-// If fail_on_warn is set, the function will
-// treat a warning (unused node) as error.
-bool traversal(Group* ast_root, bool fail_on_warn){
-    return true;
 }
