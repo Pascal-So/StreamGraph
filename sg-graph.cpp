@@ -166,14 +166,11 @@ bool check_group_connected(Group* ast_node){
     reset_visited_nodes(ast_node);
 
     bool connected = false;
+    auto input_nodes = ast_node->list_inputs();
     // check file input nodes
-    for(auto n:ast_node->children_io_nodes){
-	if(n->is_input()){
-	    connected |= dfs_reaches_output(n);
-	}
+    for(auto n:input_nodes){
+	connected |= dfs_reaches_output(n);
     }
-    // check stdin node
-    connected |= dfs_reaches_output(ast_node->input_node);
 
     return connected;
 }
@@ -294,13 +291,10 @@ bool group_check(Group* ast_node, std::string location){
     }
 
     // remove the out edges leading to dead nodes from every input point
-    for(auto n:ast_node->children_io_nodes){
-	if(n->is_input()){
-	    dfs_remove_dead_out_edges(n);
-	}
+    auto input_nodes = ast_node->list_inputs();
+    for(auto n:input_nodes){
+	dfs_remove_dead_out_edges(n);
     }
-    dfs_remove_dead_out_edges(ast_node->input_node);
-
     
     remove_unneeded_nodes(ast_node);
 
@@ -308,20 +302,13 @@ bool group_check(Group* ast_node, std::string location){
     // check for cycles
     reset_visited_nodes(ast_node);
     std::vector<Node*> cycle;
-    for(auto n:ast_node->children_io_nodes){
-	if(n->is_input()){
-	    cycle = dfs_check_cycles(n);
-	    if( ! cycle.empty()){
-		// found a cycle, stop checking any further.
-		break;
-	    }
+    input_nodes = ast_node->list_inputs();
+    for(auto n:input_nodes){
+	cycle = dfs_check_cycles(n);
+	if( ! cycle.empty()){
+	    // found a cycle, stop checking any further.
+	    break;
 	}
-    }
-    if(cycle.empty()){
-	// if we haven't found a cycle when starting from
-	// the file input nodes, start checking from the
-	// stdin node as well.
-	cycle = dfs_check_cycles(ast_node->input_node);
     }
     if(! cycle.empty()){
 	// found a cycle
@@ -339,7 +326,9 @@ bool group_check(Group* ast_node, std::string location){
 }
 
 
-
+bool groups_check(Group* current_group){
+    
+}
 
 
 

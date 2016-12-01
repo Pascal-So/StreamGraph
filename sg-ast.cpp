@@ -141,3 +141,14 @@ bool Edge::link_nodes(std::unordered_map<std::string, Node*> & nodes_namespace){
 Group::Group(){
     visited = false;
 }
+
+std::vector<Node*> Group::list_inputs(){
+    std::vector<Node*> out;
+    out.push_back(input_node);
+    for(auto n:children_io_nodes){
+	if(n->is_input()){
+	    out.push_back(n);
+	}
+    }
+    return out;
+}

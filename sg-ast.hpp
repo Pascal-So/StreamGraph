@@ -137,6 +137,7 @@ struct Group{
     Stdio_node* output_node;
 
     Group();
+    std::vector<Node*> list_inputs();
 };
 
 #endif
