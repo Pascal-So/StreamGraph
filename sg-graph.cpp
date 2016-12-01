@@ -195,9 +195,48 @@ bool check_group_connected(Group* ast_node){
 std::vector<Node*> dfs_check_cycles(Node* n){
     std::vector<Node*> cycle_nodes;
 
-    if(n->cycle_dfs_active){
-	
+    if(n->visited){
+	// this has already been checked and
+	// no cycle has been found.
+	return cycle_nodes;
     }
+
+    n->visited = true;
+    
+    if(n->cycle_dfs_active){
+	cycle_nodes.push_back(n);
+	return cycle_nodes;
+    }
+
+    n->cycle_dfs_active = true;
+
+    for(auto e:n->out_edges){
+	cycle_nodes = dfs_check_cycles(e->destination);
+	
+	if(! cycle_nodes.empty()){
+	    // one of the sub-calls detected a cycle.
+
+	    // check if the cycle nodes list already contains the
+	    // entire cycle
+	    if(cycle_nodes.size() > 1){
+		if(cycle_nodes[0] == cycle_nodes[cycle_nodes.size()-1]){
+		    // cycle has already been completely detected.
+		    return cycle_nodes;
+		}
+	    }
+
+	    // cycle nodes list is not complete yet, add current node
+	    // to cycle nodes list
+	    cycle_nodes.push_back(n);
+
+	    return cycle_nodes;
+	}
+    }
+
+    // no cycles were detected
+    n->cycle_dfs_active = false;
+
+    return cycle_nodes;
 }
 
 
@@ -267,6 +306,7 @@ bool group_check(Group* ast_node, std::string location){
 
 
     // check for cycles
+    reset_visited_nodes(ast_node);
     std::vector<Node*> cycle;
     for(auto n:ast_node->children_io_nodes){
 	if(n->is_input()){
@@ -297,6 +337,10 @@ bool group_check(Group* ast_node, std::string location){
     
     return true;
 }
+
+
+
+
 
 
 
