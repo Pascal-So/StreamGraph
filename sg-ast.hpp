@@ -32,6 +32,11 @@ struct Node{
     // the node is never even visited by the
     // dfs we know that it cannot be reached.
     bool needed;
+
+    // used by dfs_check_cycles to see if the
+    // dfs has entered this node but not left
+    // yet.
+    bool cycle_dfs_active;
     
     bool is_input();
     bool is_output();

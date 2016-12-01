@@ -48,15 +48,20 @@ void vector_append(std::vector<T> &a, std::vector<U> &b){
 void reset_visited_nodes(Group* ast_node){
     for(auto n:ast_node->children_bash_nodes){
 	n->visited = false;
+	n->cycle_dfs_active = false;
     }
     for(auto n:ast_node->children_io_nodes){
 	n->visited = false;
+	n->cycle_dfs_active = false;
     }
     for(auto n:ast_node->children_instance_nodes){
 	n->visited = false;
+	n->cycle_dfs_active = false;
     }
     ast_node->input_node->visited = false;
+    ast_node->input_node->cycle_dfs_active = false;
     ast_node->output_node->visited = false;
+    ast_node->output_node->cycle_dfs_active = false;
 }
 
 
@@ -183,6 +188,19 @@ bool check_group_connected(Group* ast_node){
 // }
 
 
+// if a cycle is encountered this returns the
+// cycle nodes where the first node that was
+// reached is both the first and the last entry
+// in the returned vector.
+std::vector<Node*> dfs_check_cycles(Node* n){
+    std::vector<Node*> cycle_nodes;
+
+    if(n->cycle_dfs_active){
+	
+    }
+}
+
+
 // a group can only be instanciated from a instance
 // node on the same level or one further down. The
 // instanciation further down only matters if the
@@ -213,7 +231,6 @@ void determine_groups_needed(Group* ast_node){
 
 
 void remove_unneeded_groups(Group* ast_node){
-    int i = 0;
     std::vector<Group*> needed_groups;
     for(auto & g:ast_node->children_groups){
 	if( ! g->needed){
@@ -229,6 +246,57 @@ void remove_unneeded_groups(Group* ast_node){
 }
 
 
+// returns false in case of error. Prints error messages.
+bool group_check(Group* ast_node, std::string location){
+    bool connected = check_group_connected(ast_node);
+    if( ! connected){
+	std::cerr<< "ERROR in " << location << ": No path from input to output.\n";
+	return false;
+    }
+
+    // remove the out edges leading to dead nodes from every input point
+    for(auto n:ast_node->children_io_nodes){
+	if(n->is_input()){
+	    dfs_remove_dead_out_edges(n);
+	}
+    }
+    dfs_remove_dead_out_edges(ast_node->input_node);
+
+    
+    remove_unneeded_nodes(ast_node);
+
+
+    // check for cycles
+    std::vector<Node*> cycle;
+    for(auto n:ast_node->children_io_nodes){
+	if(n->is_input()){
+	    cycle = dfs_check_cycles(n);
+	    if( ! cycle.empty()){
+		// found a cycle, stop checking any further.
+		break;
+	    }
+	}
+    }
+    if(cycle.empty()){
+	// if we haven't found a cycle when starting from
+	// the file input nodes, start checking from the
+	// stdin node as well.
+	cycle = dfs_check_cycles(ast_node->input_node);
+    }
+    if(! cycle.empty()){
+	// found a cycle
+	std::cerr<<"ERROR in " << location << ": The program forms an infinite loop.\n";
+	for(auto n:cycle){
+	    std::cerr<<"  " << n->name << "\n";
+	}
+	return false;
+    }
+
+    determine_groups_needed(ast_node);
+    remove_unneeded_groups(ast_node);
+    
+    return true;
+}
 
 
 
