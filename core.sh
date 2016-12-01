@@ -20,11 +20,17 @@ debug_messages="false"
 fifo_directory="/tmp/sg-fifos_$(date +%s)" 
 if [ ! -e "$fifo_directory" ]; then
     mkdir "$fifo_directory"
+    if [ $? -eq 1 ]; then
+	echo "Can't create $fifo_directory" >&2
+	exit 1
+    fi
 elif [ ! -d "$fifo_directory" ]; then
     echo "Can't create $fifo_directory because file exists" >&2
+    exit 1
 else
     if [ ! -w "$fifo_directory" ]; then
 	echo "Fifo directory not writable" >&2
+	exit 1
     fi
 fi
 
