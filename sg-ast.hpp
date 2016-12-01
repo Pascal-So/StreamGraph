@@ -118,7 +118,10 @@ struct Edge{
 
 struct Group{
     bool visited; //used by sg-linker -> link to avoid infinite loop
-    bool input_output_connected;
+    
+    //used by sg-graph checker to see if any instances are made of
+    // this group
+    bool needed; 
     std::string name;
     std::vector<Group*> children_groups;
     std::vector<Bash_node*> children_bash_nodes;

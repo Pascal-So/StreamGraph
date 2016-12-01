@@ -35,14 +35,14 @@ void vector_append(std::vector<T> &a, std::vector<U> &b){
 
 // might be deleted, as it's not needed right now, but
 // maybe in the fututre
-template<typename T, typename U>
-std::vector<T> vector_cast(std::vector<U> in){
-    std::vector<T> out;
-    for(auto e:in){
-	out.push_back(static_cast<T>(e));
-    }
-    return out;
-}
+// template<typename T, typename U>
+// std::vector<T> vector_cast(std::vector<U> in){
+//     std::vector<T> out;
+//     for(auto e:in){
+// 	out.push_back(static_cast<T>(e));
+//     }
+//     return out;
+// }
 
 
 void reset_visited_nodes(Group* ast_node){
@@ -64,6 +64,10 @@ void reset_visited_nodes(Group* ast_node){
 // This function doesn't specifically check for cycles,
 // but it is robust to cycles and will not result in
 // undefined behaviour.
+// The function doesn't go down in to group instances,
+// the groups will be checked later and the function
+// therefore considers instance and bash nodes exactly
+// the same way.
 bool dfs_reaches_output(Node* n){
     if(n->visited){
 	return n->needed;
@@ -153,28 +157,31 @@ void remove_unneeded_nodes(Group* ast_node){
 }
 
 
-
 bool check_group_connected(Group* ast_node){
     reset_visited_nodes(ast_node);
 
     bool connected = false;
+    // check file input nodes
     for(auto n:ast_node->children_io_nodes){
 	if(n->is_input()){
 	    connected |= dfs_reaches_output(n);
 	}
     }
+    // check stdin node
     connected |= dfs_reaches_output(ast_node->input_node);
 
     return connected;
 }
 
 
-void reset_group_visited(Group* current_group){
-    current_group->visited = false;
-    for(auto g:current_group->children_groups){
-	reset_group_visited(g);
-    }
-}
+// currently not needed.
+// void reset_group_visited(Group* current_group){
+//     current_group->visited = false;
+//     for(auto g:current_group->children_groups){
+// 	reset_group_visited(g);
+//     }
+// }
+
 
 // a group can only be instanciated from a instance
 // node on the same level or one further down. The
@@ -182,16 +189,44 @@ void reset_group_visited(Group* current_group){
 // group gets instanciated at least one from the
 // outside. Therefore, to see if a group is needed,
 // we only need to check on the same level.
+// This function checks for a given ast_node all the
+// subgroups.
 void determine_groups_needed(Group* ast_node){
+    for(auto g:ast_node->children_groups){
+	// reset needed flags on groups.
+	g->needed = false;
+    }
     for(auto n:ast_node->children_instance_nodes){
-	if(n->needed){
-	    
-	}
+        // we don't need to check for the `needed`
+	// flag on the node because the function
+	// `remove_unneeded_nodes` has taken care
+	// of this.
+
+	// set the needed flag on the group. If
+	// the node references a group in a level
+	// further up, this doesn't matter because
+	// they already have the needed flag set
+	// anyway.
+	n->group->needed = true;
     }
 }
 
 
+void remove_unneeded_groups(Group* ast_node){
+    int i = 0;
+    std::vector<Group*> needed_groups;
+    for(auto & g:ast_node->children_groups){
+	if( ! g->needed){
+	    delete g;
+	}else{
+	    needed_groups.push_back(g);
+	}
+    }
 
+    // only keep the pointers to the needed groups,
+    // because the other groups have been deleted.
+    ast_node->children_groups = needed_groups;
+}
 
 
 
