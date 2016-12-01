@@ -29,12 +29,12 @@ sg-ast.o: sg-ast.hpp sg-ast.cpp
 sg-bash-generator.o: sg-bash-generator.hpp sg-bash-generator.cpp
 	$(CC) $(CFLAGS) -c sg-bash-generator.cpp
 
-sg.o: sg.cpp
+sg.o: sg.cpp core-script.cpp
 	$(CC) $(CFLAGS) -c sg.cpp
 
 # this creates a cpp file with the sg core as string literal
-core-script.cpp: core.sh
+core-script.cpp: core.sh load-core-to-cpp.sh
 	./load-core-to-cpp.sh core.sh > core-script.cpp
 
-sg: $(OBJECTS) core-script.cpp
+sg: $(OBJECTS)
 	$(CC) $(CLFAGS) -o sg $(OBJECTS)

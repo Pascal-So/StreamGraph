@@ -9,6 +9,6 @@ fi
 echo "#include<bits/stdc++.h>"
 echo "std::string sg_core = "
 
-cat "$1" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed 's/^/"/' | sed 's/$/\\n"/'
+cat "$1" | sed '/^\s*#.*$/d' | sed '/^\s*$/d' | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed 's/^/"/' | sed 's/$/\\n"/'
 
 echo ";"

@@ -20,9 +20,8 @@
 int main(){
     
     Group* ast = new Group();
-    generate_bash_script(ast);
+    generate_bash_script(ast, sg_core);
 
-    //std::cout<<sg_core<<"\n";
     
     
     /*
