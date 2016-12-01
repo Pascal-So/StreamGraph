@@ -5,6 +5,7 @@
 #include "sg-linker.hpp"
 #include "sg-graph.hpp"
 #include "sg-bash-generator.hpp"
+#include "core-script.cpp" // contains the sg core as string literal
 #define token std::pair<std::string, std::string> // token type, token content
 #define Group_namespace std::unordered_map<std::string, Group*>
 
@@ -17,6 +18,14 @@
 
 
 int main(){
+    
+    Group* ast = new Group();
+    generate_bash_script(ast);
+
+    //std::cout<<sg_core<<"\n";
+    
+    
+    /*
     Lexer l ("program.sg");
 
     // lex the source code
@@ -53,4 +62,5 @@ int main(){
     for(auto t:result){
 	std::cout<< t.first << "\t" << t.second<<"\n";
     }
+    */
 }

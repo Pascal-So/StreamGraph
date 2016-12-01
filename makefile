@@ -32,5 +32,9 @@ sg-bash-generator.o: sg-bash-generator.hpp sg-bash-generator.cpp
 sg.o: sg.cpp
 	$(CC) $(CFLAGS) -c sg.cpp
 
-sg: $(OBJECTS)
+# this creates a cpp file with the sg core as string literal
+core-script.cpp: core.sh
+	./load-core-to-cpp.sh core.sh > core-script.cpp
+
+sg: $(OBJECTS) core-script.cpp
 	$(CC) $(CLFAGS) -o sg $(OBJECTS)

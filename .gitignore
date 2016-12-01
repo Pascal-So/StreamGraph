@@ -4,3 +4,4 @@ sg
 .#*
 *.pyc
 *.o
+core-script.cpp
