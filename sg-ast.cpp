@@ -61,6 +61,7 @@ Stdio_node::Stdio_node(Io_type io_type):io_type(io_type){
     needed = false;
     cycle_dfs_active = false;
     node_type = STDIO_NODE;
+    name = (io_type == INPUT) ? "input" : "output";
 }
 
 bool Stdio_node::is_input(){
@@ -156,6 +157,22 @@ std::vector<Node*> Group::list_inputs(){
 	if(n->is_input()){
 	    out.push_back(n);
 	}
+    }
+    return out;
+}
+
+std::vector<Node*> Group::list_all_nodes(){
+    std::vector<Node*> out;
+    out.push_back(input_node);
+    out.push_back(output_node);
+    for(auto n:children_io_nodes){
+	out.push_back(n);
+    }
+    for(auto n:children_bash_nodes){
+	out.push_back(n);
+    }
+    for(auto n:children_instance_nodes){
+	out.push_back(n);
     }
     return out;
 }

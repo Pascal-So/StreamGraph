@@ -141,6 +141,7 @@ struct Group{
 
     Group();
     std::vector<Node*> list_inputs();
+    std::vector<Node*> list_all_nodes();
 };
 
 #endif

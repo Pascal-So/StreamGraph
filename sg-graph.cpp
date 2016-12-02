@@ -154,13 +154,8 @@ std::string check_duplicate_group(Group* ast_node){
 
 std::string check_duplicate_node(Group* ast_node){
     std::unordered_set<std::string> node_names;
-    node_names.insert("input");
-    node_names.insert("output");
-    
-    std::vector<Node*> nodes;
-    vector_append(nodes, ast_node->children_bash_nodes);
-    vector_append(nodes, ast_node->children_io_nodes);
-    vector_append(nodes, ast_node->children_instance_nodes);
+
+    std::vector<Node*> nodes = ast_node->list_all_nodes();
     
     for(auto n:nodes){
 	std::string name = n->name;
@@ -441,23 +436,38 @@ void remove_unneeded_groups(Group* ast_node){
 
 // - CHECK INPUTS TO NODES ------------------------------------------------
 
-void add_input_link_dfs(Node* n){
-    if(n->visited){
-	return;
+bool check_inputs_to_nodes(Group* ast_node, std::string location){
+    // add edge pointer to the in_edges vector on all edge destinations
+    for(auto e:ast_node->children_edges){
+	e->destination->in_edges.push_back(e);
     }
 
-    n->visited = true;
-
+    std::vector<Node*> nodes = ast_node->list_all_nodes();
     
-}
-
-bool check_inputs_to_nodes(Group* ast_node){
-    std::vector<Node*> inputs = ast_node->list_inputs();
-
-    reset_visited_nodes(ast_node);
-    for(auto n:inputs){
-	add_input_link_dfs(n);
+    for(auto n:nodes){
+        if(n->in_edges.size() > 1){
+	    // check if only h or v at a time have been used
+	    bool horizontal = false;
+	    bool vertical = false;
+	    for(auto e:n->in_edges){
+		horizontal |= (e->mod_destination == HORIZONTAL);
+		vertical |= (e->mod_destination == VERTICAL);
+		if(e->mod_destination == NONE){
+		    std::cerr<< "ERROR in " << location;
+		    std::cerr<< ": node " << n->name << " has both inputs with and without join modifier.\n";
+		    return false;
+		}
+	    }
+	    if(horizontal && vertical){
+		std::cerr<< "ERROR in " << location;
+		std::cerr<< ": node " << n->name << " has both horizontal and vertical inputs.\n";
+		return false;
+	    }
+	}else{
+	    // only one input, we don't care about extension
+	}
     }
+    
 }
 
 
