@@ -32,9 +32,18 @@ sg-bash-generator.o: sg-bash-generator.hpp sg-bash-generator.cpp
 sg.o: sg.cpp core-script.cpp
 	$(CC) $(CFLAGS) -c sg.cpp
 
+core.min.sh: core.sh minify-script.sh
+	./minify-script.sh core.sh > core.min.sh
+
 # this creates a cpp file with the sg core as string literal
-core-script.cpp: core.sh load-core-to-cpp.sh
-	./load-core-to-cpp.sh core.sh > core-script.cpp
+core-script.cpp: core.min.sh load-core-to-cpp.sh
+	./load-core-to-cpp.sh core.min.sh > core-script.cpp
 
 sg: $(OBJECTS)
 	$(CC) $(CLFAGS) -o sg $(OBJECTS)
+
+
+clear:
+	rm *.o
+	rm core.min.sh
+	rm core-script.cpp

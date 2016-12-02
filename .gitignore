@@ -5,3 +5,4 @@ sg
 *.pyc
 *.o
 core-script.cpp
+core.min.sh
