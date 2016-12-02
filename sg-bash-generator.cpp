@@ -131,11 +131,8 @@ std::string execute_node(Node* node){
 	out = static_cast<Bash_node*>(node)->bash_command + " ";
     }else{
 	Instance_node* inst_node = static_cast<Instance_node*>(node);
-	if(! inst_node->recursive_call){
-	    out = inst_node->group_name + " ";
-	}else{
-	    out = "ifne " + inst_node->group_name + " ";
-	}
+	// only call group function if stdin is not empty
+	out = "ifne " + inst_node->group_name + " ";
     }
     return out;
 }

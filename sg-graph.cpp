@@ -12,8 +12,11 @@
 // - Check for two elements of the same name
 // - Check if a path from input to output exists
 // - Remove out_edges on nodes leading to dead ends
+// - remove unneeded nodes
+// - Remove unneeded edges
 // - Check for cycles
 // - Remove unneeded groups
+// - Check inputs to nodes
 //
 // The checks are performed in this order. They happen
 // recursively on every level, starting from the hightest
@@ -32,15 +35,19 @@ void reset_visited_nodes(Group* ast_node);
 std::string format_group_stack(std::stack<Group*> stack);
 
 // check fro two groups of the same name
-std::string check_duplicate_group(Group* ast_node);
-std::string check_duplicate_node(Group* ast_node);
+bool check_duplicate_elements(Group* ast_node, std::string location);
 
 // check if path form input to output exists
 bool check_group_connected(Group* ast_node);
 
-// remove unneeded nodes
+// remove dead out edges
 void dfs_remove_dead_out_edges(Node* n);
+
+// remove unneeded nodes
 void remove_unneeded_nodes(Group* ast_node);
+
+// remove unneeded edges
+void remove_unneeded_edges(Group* ast_node);
 
 // remove cycles
 std::vector<Node*> dfs_check_cycles(Node* n);
@@ -48,21 +55,18 @@ std::vector<Node*> dfs_check_cycles(Node* n);
 // remove unneeded groups
 void remove_unneeded_groups(Group* ast_node);
 
+// check inputs to nodes
+bool check_inputs_to_nodes(Group* ast_node);
+
 
 // main functions ----------------------------------------------------------------------------------
 
 // returns false in case of error. Prints error messages.
 bool group_check(Group* ast_node, std::string location){
-    // check if group has conflicting group or node definitions
-    std::string duplicate_group = check_duplicate_group(ast_node);
-    if(duplicate_group != ""){
-	std::cerr<< "ERROR in " << location << ": The group " << duplicate_group << " is defined multiple times.\n";
-	return false;
-    }
-
-    std::string duplicate_node = check_duplicate_node(ast_node);
-    if(duplicate_node != ""){
-	std::cerr<< "ERROR in " << location << ": The node " << duplicate_node << " is defined multiple times.\n";
+    bool duplicates = check_duplicate_elements(ast_node, location);
+    if(duplicates){
+	// check duplicate elements already prints its own error messages,
+	// we don't need to print one here.
 	return false;
     }
 
@@ -79,9 +83,10 @@ bool group_check(Group* ast_node, std::string location){
     for(auto n:input_nodes){
 	dfs_remove_dead_out_edges(n);
     }
+
     
     remove_unneeded_nodes(ast_node);
-
+    remove_unneeded_edges(ast_node);
 
     // check for cycles
     reset_visited_nodes(ast_node);
@@ -133,7 +138,7 @@ bool groups_check(Group* current_group, std::stack<Group*> current_group_stack){
 // implementations -----------------------------------------------------------------
 
 
-// - CHECK FOR TWO ELEMENTS OF THE SAME NAME
+// - CHECK FOR TWO ELEMENTS OF THE SAME NAME -------------------------------------------
 std::string check_duplicate_group(Group* ast_node){
     std::unordered_set<std::string> group_names;
     for(auto g:ast_node->children_groups){
@@ -167,8 +172,25 @@ std::string check_duplicate_node(Group* ast_node){
     return "";
 }
 
+bool check_duplicate_elements(Group* ast_node, std::string location){
+    // check if group has conflicting group or node definitions
+    std::string duplicate_group = check_duplicate_group(ast_node);
+    if(duplicate_group != ""){
+	std::cerr<< "ERROR in " << location;
+	std::cerr<< ": The group " << duplicate_group << " is defined multiple times.\n";
+	return false;
+    }
 
-// 1 - CHECK IF A PATH FROM INPUT TO OUTPUT EXISTS ----------------------------------
+    std::string duplicate_node = check_duplicate_node(ast_node);
+    if(duplicate_node != ""){
+	std::cerr<< "ERROR in " << location;
+	std::cerr<< ": The node " << duplicate_node << " is defined multiple times.\n";
+	return false;
+    }
+}
+
+
+// - CHECK IF A PATH FROM INPUT TO OUTPUT EXISTS ----------------------------------
 
 
 // This function doesn't specifically check for cycles,
@@ -204,8 +226,17 @@ bool dfs_reaches_output(Node* n){
 	reaches_output |= dfs_reaches_output(out_edge->destination);
     }
 
-    // flag node as needed because it lies on a path from in to out.
-    n->needed = reaches_output;
+    if( reaches_output ){
+	// flag node as needed because it lies on a path from in to out.
+	n->needed = true;
+    }else{
+	// set `needed` flag on edges leading away from this node to
+	// false as well.
+	for(auto e:n->out_edges){
+	    e->needed = false;
+	}
+	n->needed = false;
+    }
     
     return reaches_output;
 }
@@ -243,39 +274,48 @@ void dfs_remove_dead_out_edges(Node* n){
     for(auto e:n->out_edges){
 	if(e->destination->needed){
 	    new_out_edges.push_back(e);
+	}else{
+	    // before this point, only edges leading out of unneeded nodes
+	    // were set to unneeded, now edges leading in to unneeded nodes
+	    // will be set to unneeded as well.
+	    e->needed = false;
 	}
     }
     n->out_edges = new_out_edges;
 }
 
 
-// T should be a derived node like Bash_node
+// T should be a derived node like Bash_node or an edge
 template<typename T>
-void cleanup_nodes_vector(std::vector<T*> & nodes){
+void cleanup_unneeded_elements_in_vector(std::vector<T*> & elements){
     int i = 0;
-    for(auto & n:nodes){
-	if(! n->needed){
+    for(auto & el:elements){
+	if(! el->needed){
 	    // base class destructor has to be virtual,
 	    // otherwise this results in undefined
 	    // behaviour
-	    delete n;
+	    delete el;
 	}else{
-	    nodes[i] = n;
+	    elements[i] = el;
 	    ++i;
 	}
     }
-    nodes.resize(i);
+    elements.resize(i);
 }
+
+
+// - REMOVE UNNEEDED NODES
 
 
 // This function has to be called after dfs_remove_dead_out_edges,
 // because otherwise the pointers in the out_edges vector might
 // refer to deleted objects.
 void remove_unneeded_nodes(Group* ast_node){
-    cleanup_nodes_vector(ast_node->children_bash_nodes);
-    cleanup_nodes_vector(ast_node->children_instance_nodes);
-    cleanup_nodes_vector(ast_node->children_io_nodes);
+    cleanup_unneeded_elements_in_vector(ast_node->children_bash_nodes);
+    cleanup_unneeded_elements_in_vector(ast_node->children_instance_nodes);
+    cleanup_unneeded_elements_in_vector(ast_node->children_io_nodes);
     if( ! ast_node->input_node->needed ){
+	
 	delete ast_node->input_node;
 	ast_node->input_node = 0;
     }
@@ -285,6 +325,11 @@ void remove_unneeded_nodes(Group* ast_node){
     }
 }
 
+// - REMOVE UNNEEDED NODES
+
+void remove_unneeded_edges(Group* ast_node){
+    cleanup_unneeded_elements_in_vector(ast_node->children_edges);
+}
 
 // - CHECK FOR CYCLES -------------------------------------------------------
 
@@ -394,6 +439,28 @@ void remove_unneeded_groups(Group* ast_node){
 
 
 
+// - CHECK INPUTS TO NODES ------------------------------------------------
+
+void add_input_link_dfs(Node* n){
+    if(n->visited){
+	return;
+    }
+
+    n->visited = true;
+
+    
+}
+
+bool check_inputs_to_nodes(Group* ast_node){
+    std::vector<Node*> inputs = ast_node->list_inputs();
+
+    reset_visited_nodes(ast_node);
+    for(auto n:inputs){
+	add_input_link_dfs(n);
+    }
+}
+
+
 // helper functions -------------------------------------------------------
 
 
@@ -408,6 +475,7 @@ void vector_append(std::vector<T> &a, std::vector<U> &b){
 }
 
 
+// only resets the nodes on one level.
 void reset_visited_nodes(Group* ast_node){
     for(auto n:ast_node->children_bash_nodes){
 	n->visited = false;

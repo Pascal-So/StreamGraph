@@ -102,8 +102,15 @@ Edge::Edge(std::string source_name,
     destination_name(destination_name)
 {
     mod_source = (mod_source_str == "inv") ? INVERSE : NONE;
-    mod_destination = (mod_destination_str[0] == 'h') ? HORIZONTAL : VERTICAL;
+    if(mod_destination_str == ""){
+	mod_destination = NONE;	
+    }else{
+	mod_destination = (mod_destination_str[0] == 'h') ? HORIZONTAL : VERTICAL;
+    }
+    
     mod_nr_destination = stoi(mod_destination_str.substr(1));
+
+    needed = true;
 }
 
 

@@ -57,7 +57,7 @@ struct Node{
     // modifiers.
     std::vector<Edge*> out_edges;
 
-    //std::vector<Edge*> in_edges;
+    std::vector<Edge*> in_edges;
 };
 
 struct Bash_node:Node{
@@ -81,9 +81,6 @@ struct Io_node:Node{
 struct Instance_node:Node{
     std::string group_name;
 
-    // does the node instanciate a group from a higher level?
-    bool recursive_call;
-    
     Group* group;
     bool link_groups(std::unordered_map<std::string, Group*> &);
 
@@ -111,6 +108,10 @@ struct Edge{
 
     Node* source;
     Node* destination;
+
+    // does the edge lie on a path from input
+    // to output?
+    bool needed;
 
     // takes the current node namespace (only
     // the ones on the same group level) and
