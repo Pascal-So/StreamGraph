@@ -9,6 +9,7 @@
 // will be deferred to optimization flags later on.
 
 // The responsibilities of these functions:
+// - Check for two elements of the same name
 // - Check if a path from input to output exists
 // - Remove out_edges on nodes leading to dead ends
 // - Check for cycles
@@ -30,6 +31,9 @@ void reset_visited_nodes(Group* ast_node);
 
 std::string format_group_stack(std::stack<Group*> stack);
 
+// check fro two groups of the same name
+std::string check_duplicate_group(Group* ast_node);
+std::string check_duplicate_node(Group* ast_node);
 
 // check if path form input to output exists
 bool check_group_connected(Group* ast_node);
@@ -49,6 +53,21 @@ void remove_unneeded_groups(Group* ast_node);
 
 // returns false in case of error. Prints error messages.
 bool group_check(Group* ast_node, std::string location){
+    // check if group has conflicting group or node definitions
+    std::string duplicate_group = check_duplicate_group(ast_node);
+    if(duplicate_group != ""){
+	std::cerr<< "ERROR in " << location << ": The group " << duplicate_group << " is defined multiple times.\n";
+	return false;
+    }
+
+    std::string duplicate_node = check_duplicate_node(ast_node);
+    if(duplicate_node != ""){
+	std::cerr<< "ERROR in " << location << ": The node " << duplicate_node << " is defined multiple times.\n";
+	return false;
+    }
+
+
+    // check if group input to output is connected
     bool connected = check_group_connected(ast_node);
     if( ! connected){
 	std::cerr<< "ERROR in " << location << ": No path from input to output.\n";
@@ -114,6 +133,40 @@ bool groups_check(Group* current_group, std::stack<Group*> current_group_stack){
 // implementations -----------------------------------------------------------------
 
 
+// - CHECK FOR TWO ELEMENTS OF THE SAME NAME
+std::string check_duplicate_group(Group* ast_node){
+    std::unordered_set<std::string> group_names;
+    for(auto g:ast_node->children_groups){
+	std::string name = g->name;
+	if(group_names.find(name) != group_names.end()){
+	    return name;
+	}
+	group_names.insert(name);
+    }
+    return false;
+}
+
+
+std::string check_duplicate_node(Group* ast_node){
+    std::unordered_set<std::string> node_names;
+    node_names.insert("input");
+    node_names.insert("output");
+    
+    std::vector<Node*> nodes;
+    vector_append(nodes, ast_node->children_bash_nodes);
+    vector_append(nodes, ast_node->children_io_nodes);
+    vector_append(nodes, ast_node->children_instance_nodes);
+    
+    for(auto n:nodes){
+	std::string name = n->name;
+	if(node_names.find(name) != node_names.end()){
+	    return name;
+	}
+	node_names.insert(name);
+    }
+    return "";
+}
+
 
 // 1 - CHECK IF A PATH FROM INPUT TO OUTPUT EXISTS ----------------------------------
 
@@ -173,7 +226,7 @@ bool check_group_connected(Group* ast_node){
 
 
 
-// 2 - REMOVE OUT_EDGES ON NODES LEADING TO DEAD ENDS -----------------------------
+// - REMOVE OUT_EDGES ON NODES LEADING TO DEAD ENDS -----------------------------
 
 
 
@@ -233,7 +286,7 @@ void remove_unneeded_nodes(Group* ast_node){
 }
 
 
-// 3 - CHECK FOR CYCLES -------------------------------------------------------
+// - CHECK FOR CYCLES -------------------------------------------------------
 
 
 
@@ -290,7 +343,7 @@ std::vector<Node*> dfs_check_cycles(Node* n){
 
 
 
-// 4 - REMOVE UNNEEDED GROUPS -------------------------------------------------
+// - REMOVE UNNEEDED GROUPS -------------------------------------------------
 
 
 
