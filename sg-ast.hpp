@@ -80,7 +80,9 @@ struct Io_node:Node{
 
 struct Instance_node:Node{
     std::string group_name;
-    
+
+    // does the node instanciate a group from a higher level?
+    bool recursive_call;
     
     Group* group;
     bool link_groups(std::unordered_map<std::string, Group*> &);

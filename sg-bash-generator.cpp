@@ -122,26 +122,39 @@ std::string execute_input_node(Node* node){
 }
 
 
+// only runs bash and instance nodes. input/output nodes
+// have to be called separately, because the pipes around
+// them need to be set up differently
 std::string execute_node(Node* node){
     std::string out;
-    switch(node->node_type){
-    case BASH_NODE:
+    if(node->node_type == BASH_NODE){
 	out = static_cast<Bash_node*>(node)->bash_command + " ";
-	break;
-    case INSTANCE_NODE:
-	out = static_cast<Instance_node*>(node)->group_name + " ";
-	break;
+    }else{
+	Instance_node* inst_node = static_cast<Instance_node*>(node);
+	if(! inst_node->recursive_call){
+	    out = inst_node->group_name + " ";
+	}else{
+	    out = "ifne " + inst_node->group_name + " ";
+	}
     }
     return out;
 }
 
 std::string group_content(Group* ast_node){
+    std::string out;
+
     
+
+    return out;
 }
 
 
 std::string sub_group(Group* ast_node){
-    
+    std::string out;
+    out = ast_node->name + " {\n";
+    out+= group_content(ast_node);
+    out+= " }\n";
+    return out;
 }
 
 
@@ -161,9 +174,14 @@ std::string print_header(std::string name, std::string sg_core, int input_files,
     out+="# Copyright (C) 2016\n";
     out+="# Pascal Sommer\n";
     out+="\n";
+    out+="\n";
+    out+="# SG Core\n";
+    out+="\n";
     out+=sg_core + "\n";
     out+="check_io_files " + std::to_string(input_files) + " ";
     out+=std::to_string(output_files) + "\n";
+    out+="\n";
+    out+="# Start actual generated code\n";
     out+="\n";
     return out;
 }

@@ -180,3 +180,12 @@ function wait_for_all_fifos_empty {
 function delete_fifo_dir {
     rm -rf "$fifo_directory"
 }
+
+function ifne {
+    read line
+    if [ -z "$line" ]; then
+	printf ""
+    else
+	(echo "$line"; cat) | eval "$@"
+    fi
+}
