@@ -62,7 +62,7 @@ std::vector<Node*> dfs_check_cycles(Node* n);
 void remove_unneeded_groups(Group* ast_node);
 
 // check inputs to nodes
-bool check_inputs_to_nodes(Group* ast_node);
+bool check_inputs_to_nodes(Group* ast_node, std::string location);
 
 
 // main functions ----------------------------------------------------------------------------------
@@ -121,6 +121,13 @@ bool group_check(Group* ast_node, std::string location){
     }
 
     remove_unneeded_groups(ast_node);
+
+    bool inputs_ok = check_inputs_to_nodes(ast_node, location);
+    if( ! inputs_ok){
+	// check_inputs_to_nodes already prints its own relevant error messages, we
+	// don't need to print one here
+	return false;
+    }
     
     return true;
 }
@@ -234,7 +241,8 @@ bool check_inverses_and_create_split_nodes(Group* ast_node, std::string location
 	}
     }
 
-    for(auto n:ast_node->children_bash_nodes){
+    auto bash_nodes = ast_node->children_bash_nodes;
+    for(auto n:bash_nodes){
 	std::vector<Edge*> inverted_out;
 	std::vector<Edge*> normal_out;
 	for(auto e:n->out_edges){
@@ -267,18 +275,22 @@ bool check_inverses_and_create_split_nodes(Group* ast_node, std::string location
 
 	Bash_node* splitter = n; // the in edges should be pointing to `splitter`
 	splitter->out_edges.clear();
+	splitter->bash_command = "cat";
 	
 	Bash_node* cmd_node = new Bash_node(command);
 	Bash_node* inv_node = new Bash_node(inverted);
-	cmd_node->name = splitter->name + "-cmd";
-	inv_node->name = splitter->name + "-inv";
+	cmd_node->name = splitter->name + "__cmd";
+	inv_node->name = splitter->name + "__inv";
 
-	Edge* e_split_cmd = new Edge(splitter->name, cmd_node->name, "", "");
-	Edge* e_split_inv = new Edge(splitter->name, inv_node->name, "", "");
+	Edge* e_split_cmd = new Edge(splitter->name, "", cmd_node->name, "");
+	Edge* e_split_inv = new Edge(splitter->name, "", inv_node->name, "");
 	e_split_cmd->source = splitter;
 	e_split_cmd->destination = cmd_node;
 	e_split_inv->source = splitter;
 	e_split_inv->destination = inv_node;
+
+	ast_node->children_edges.push_back(e_split_cmd);
+	ast_node->children_edges.push_back(e_split_inv);
 
 	splitter->out_edges.push_back(e_split_cmd);
 	splitter->out_edges.push_back(e_split_inv);

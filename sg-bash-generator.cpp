@@ -13,14 +13,7 @@ std::string sub_group(Group* ast_node);
 // takes a varable of the form BASH_VAR without quotes
 // and returns "${BASH_VAR}" with quotes in the string
 std::string format_bash_variable(std::string var_name){
-    return "\"${" + var_name + "}\"";
-}
-
-
-// read_stream prints the command that stdouts the contents
-// of the given stream.
-std::string read_stream(std::string stream_var){
-    return "cat " + format_bash_variable(stream_var) + " ";
+    return "\"${" + var_name + "}\" ";
 }
 
 
@@ -43,7 +36,7 @@ std::string merge_streams(std::vector<std::string> stream_vars, bool horizontal)
 	// in the same background process
 	out = "{ ";
 	for(size_t i = 0; i < nr_vars; ++i){
-	    out+= read_stream(stream_vars[i]);
+	    out+= "cat " + format_bash_variable(stream_vars[i]);
 	    if(i < nr_vars-1){
 		out+= "& ";
 	    }
@@ -62,7 +55,7 @@ std::string pipe_to_stream(std::vector<std::string> stream_vars){
     for(auto v:stream_vars){
 	out+= format_bash_variable(v);
     }
-    return out + " >/dev/null ";
+    return out + ">/dev/null ";
 }
 
 
@@ -76,6 +69,16 @@ std::string read_file(int file_number){
 }
 
 
+std::string write_file(int file_number){
+    std::string out;
+    out  = "cat > \"${output_files[";
+    out += std::to_string(file_number);
+    out += "]}\" ";
+    return out;
+}
+
+
+
 std::string execute_input_node(Node* node){
     std::string out;
     if(node->node_type == IO_NODE){
@@ -83,6 +86,17 @@ std::string execute_input_node(Node* node){
 	out = read_file(ion->number);
     }else{
 	out = "cat - ";
+    }
+    return out;
+}
+
+std::string execute_output_node(Node* node){
+    std::string out;
+    if(node->node_type == IO_NODE){
+	Io_node* ion = static_cast<Io_node*>(node);
+	out = write_file(ion->number);
+    }else{
+	out = "cat ";
     }
     return out;
 }
@@ -107,13 +121,13 @@ std::string edge_to_fifo_name(Edge* e){
     std::string out;
     out = e->destination->name;
     if(e->mod_destination != NONE ){
-	out += "-" + std::to_string(e->mod_nr_destination);
+	out += "__" + std::to_string(e->mod_nr_destination);
     }
     return out;
 }
 
 
-std::string group_content(Group* ast_node){
+std::string group_content(Group* ast_node, bool in_function){
     std::string out;
 
     // first create all the functions for the subgroups
@@ -124,8 +138,10 @@ std::string group_content(Group* ast_node){
     out += "\n";
     
     // create fifos
+    // if we're inside a function we should use local variables.
+    std::string variable_prefix = in_function ? "local " : "";
     for(auto e:ast_node->children_edges){
-	out+=edge_to_fifo_name(e) + "=$(get_fifo)\n";
+	out+= variable_prefix + edge_to_fifo_name(e) + "=$(get_fifo)\n";
     }
 
     out += "\n";
@@ -153,9 +169,16 @@ std::string group_content(Group* ast_node){
 		// is effectively an or gate over the entire input.
 		horizontal |= (e->mod_destination == HORIZONTAL);
 	    }
+	    
 	    command += merge_streams(in_fifos, horizontal);
 	    command += "| ";
-	    command += execute_node(n);
+
+	    if(n->is_output()){
+		command += execute_output_node(n);
+	    }else{
+		command += execute_node(n);
+	    }
+	    
 	}
 	
 	if( ! n->is_output()){
@@ -184,8 +207,8 @@ std::string group_content(Group* ast_node){
 std::string sub_group(Group* ast_node){
     std::string out;
     out = ast_node->name + " {\n";
-    out+= group_content(ast_node);
-    out+= " }\n";
+    out+= group_content(ast_node, true);
+    out+= "}\n";
     return out;
 }
 
@@ -229,12 +252,12 @@ std::string print_footer(){
 std::string generate_bash_script(Group* ast_root, std::string sg_core){
     std::string out = "";
 
-    out += print_header(ast_root->name, sg_core, 1, 0);
+    //out += print_header(ast_root->name, sg_core, 1, 0);
 
-    out += group_content(ast_root);
+    out += group_content(ast_root, false);
 
-    out += print_footer();
-    std::cout<<out<<"\n";
+    //out += print_footer();
+    //std::cout<<out<<"\n";
 
     return out;
 }

@@ -18,8 +18,10 @@
 
 
 int main(){
+
+    std::string progam_name= "program.sg";
     
-    Lexer l ("program.sg");
+    Lexer l (progam_name);
 
     // lex the source code
     auto result = l.lex();
@@ -32,6 +34,8 @@ int main(){
     if (ast == 0){
 	return 1;
     }
+
+    ast->name = progam_name;
     
     // create an empty namespace to start the linker method
     Group_namespace gn;
@@ -51,9 +55,8 @@ int main(){
 
     // generate the bash script
     std::string bash_script = generate_bash_script(ast, sg_core);
+
+    std::cout<<bash_script<<"\n";
     
-    for(auto t:result){
-	std::cout<< t.first << "\t" << t.second<<"\n";
-    }
-    
+    return 0;
 }

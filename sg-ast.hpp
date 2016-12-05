@@ -113,9 +113,9 @@ struct Edge{
     bool link_nodes(std::unordered_map<std::string, Node*> &);
 
     Edge(std::string source_name,
+	 std::string mod_source_str,
 	 std::string destination_name,
-	 std::string mod_source,
-	 std::string mod_destination);
+	 std::string mod_destination_str);
 };
 
 struct Group{
