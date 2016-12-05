@@ -98,7 +98,7 @@ std::string Scanner::get_position(){
 // ***************** Private functions *************************
 
 bool Scanner::fill_buffer(int len){	
-    while (buffer.size() < len){
+    while (buffer.size() < (size_t)len){
 	if(infile.eof()){
 	    return false;
 	}
@@ -145,7 +145,7 @@ std::string Scanner::clear_from_buffer(int len){
 // was reached.
 std::string Scanner::get_while(bool (*cond)(char)){
 	
-    for(int i = 0; i < buffer.size(); ++i){
+    for(size_t i = 0; i < buffer.size(); ++i){
 	if( ! (*cond)(buffer[i])){
 	    return clear_from_buffer(i);
 	}

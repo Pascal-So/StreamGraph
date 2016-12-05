@@ -252,12 +252,11 @@ std::string print_footer(){
 std::string generate_bash_script(Group* ast_root, std::string sg_core){
     std::string out = "";
 
-    //out += print_header(ast_root->name, sg_core, 1, 0);
+    out += print_header(ast_root->name, sg_core, 1, 0);
 
     out += group_content(ast_root, false);
 
-    //out += print_footer();
-    //std::cout<<out<<"\n";
+    out += print_footer();
 
     return out;
 }
