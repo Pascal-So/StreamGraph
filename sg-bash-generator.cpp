@@ -5,6 +5,11 @@
 std::string version_number = "0.1";
 
 
+std::string sub_group(Group* ast_node);
+
+
+
+
 // takes a varable of the form BASH_VAR without quotes
 // and returns "${BASH_VAR}" with quotes in the string
 std::string format_bash_variable(std::string var_name){
@@ -98,10 +103,79 @@ std::string execute_node(Node* node){
     return out;
 }
 
+std::string edge_to_fifo_name(Edge* e){
+    std::string out;
+    out = e->destination->name;
+    if(e->mod_destination != NONE ){
+	out += "-" + std::to_string(e->mod_nr_destination);
+    }
+    return out;
+}
+
+
 std::string group_content(Group* ast_node){
     std::string out;
 
+    // first create all the functions for the subgroups
+    for(auto g:ast_node->children_groups){
+	out += sub_group(g);
+    }
+
+    out += "\n";
     
+    // create fifos
+    for(auto e:ast_node->children_edges){
+	out+=edge_to_fifo_name(e) + "=$(get_fifo)\n";
+    }
+
+    out += "\n";
+    
+    // store the commands in here and print them out later,
+    // because we need to run all but one of them as back-
+    // ground processes.
+    std::vector<std::string> node_commands;
+    std::vector<Node*> nodes = ast_node->list_all_nodes();
+    for(auto n:nodes){
+	std::string command = "";
+
+	if( n->is_input()){
+	    command += execute_input_node(n);
+	}else{
+
+	    // merge the input edges. This uses the merge_streams function, even if only
+	    // one edge leads to this node. Uses "VERTICAL" by default.
+	    bool horizontal = false;
+	    std::vector<std::string> in_fifos;
+	    for(auto e:n->in_edges){
+		in_fifos.push_back(edge_to_fifo_name(e));
+
+		// set horizontal to true if at least one of the input edges is horizontal. This
+		// is effectively an or gate over the entire input.
+		horizontal |= (e->mod_destination == HORIZONTAL);
+	    }
+	    command += merge_streams(in_fifos, horizontal);
+	    command += "| ";
+	    command += execute_node(n);
+	}
+	
+	if( ! n->is_output()){
+	    command += "| ";
+
+	    std::vector<std::string> out_fifos;
+	    for(auto e:n->out_edges){
+		out_fifos.push_back(edge_to_fifo_name(e));
+	    }
+
+	    command += pipe_to_stream(out_fifos);
+	}
+
+	node_commands.push_back(command);
+    }
+
+    for(size_t i = 0; i < node_commands.size() -1; ++i){
+	out+= node_commands[i] + "&\n";
+    }
+    out+= node_commands.back() + "\n";
 
     return out;
 }
