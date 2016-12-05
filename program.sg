@@ -11,7 +11,7 @@ g moveSecondFieldToEnd{
 # nodes
 n rearrange- moveSecondFieldToEnd
 n stuffToAppend/ infile 1
-n sort: sort # note how a node can have the same name as a command
+n sort: sort
 
 # edges
 e input rearrange

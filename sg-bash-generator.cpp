@@ -33,15 +33,12 @@ std::string merge_streams(std::vector<std::string> stream_vars, bool horizontal)
     }else{
 	// {cat a & cat b & cat c ; } is safer than `cat a b c` because
 	// it won't block the execution if two of the pipes are created
-	// in the same background process
-	out = "{ ";
+	// in the same background process, but it won't preserve order
+	// therefore I'm now using `cat <(cat a) <(cat b) <(cat c)`
+	out = "cat ";
 	for(size_t i = 0; i < nr_vars; ++i){
-	    out+= "cat " + format_bash_variable(stream_vars[i]);
-	    if(i < nr_vars-1){
-		out+= "& ";
-	    }
+	    out+= "<(cat " + format_bash_variable(stream_vars[i]) + ") ";
 	}
-	out+= "; } ";
     }
 
     return out;
@@ -63,7 +60,7 @@ std::string pipe_to_stream(std::vector<std::string> stream_vars){
 std::string read_file(int file_number){
     std::string out;
     out  = "cat \"${input_files[";
-    out += std::to_string(file_number);
+    out += std::to_string(file_number-1);
     out += "]}\" ";
     return out;
 }
@@ -72,7 +69,7 @@ std::string read_file(int file_number){
 std::string write_file(int file_number){
     std::string out;
     out  = "cat > \"${output_files[";
-    out += std::to_string(file_number);
+    out += std::to_string(file_number-1);
     out += "]}\" ";
     return out;
 }
@@ -206,7 +203,7 @@ std::string group_content(Group* ast_node, bool in_function){
 
 std::string sub_group(Group* ast_node){
     std::string out;
-    out = ast_node->name + " {\n";
+    out = ast_node->name + " () {\n";
     out+= group_content(ast_node, true);
     out+= "}\n";
     return out;
