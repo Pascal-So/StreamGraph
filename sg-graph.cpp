@@ -10,6 +10,7 @@
 
 // The responsibilities of these functions:
 // - Check for two elements of the same name
+// - Check inverses and create split nodes
 // - Check if a path from input to output exists
 // - Remove out_edges on nodes leading to dead ends
 // - remove unneeded nodes
@@ -34,8 +35,13 @@ void reset_visited_nodes(Group* ast_node);
 
 std::string format_group_stack(std::stack<Group*> stack);
 
+std::vector<std::string> str_split(std::string input);
+
 // check fro two groups of the same name
 bool check_duplicate_elements(Group* ast_node, std::string location);
+
+// Check inverses and create split nodes
+bool check_inverses_and_create_split_nodes(Group* ast_node, std::string location);
 
 // check if path form input to output exists
 bool check_group_connected(Group* ast_node);
@@ -63,13 +69,19 @@ bool check_inputs_to_nodes(Group* ast_node);
 
 // returns false in case of error. Prints error messages.
 bool group_check(Group* ast_node, std::string location){
-    bool duplicates = check_duplicate_elements(ast_node, location);
-    if(duplicates){
+    bool duplicates_ok = check_duplicate_elements(ast_node, location);
+    if( ! duplicates_ok){
 	// check duplicate elements already prints its own error messages,
 	// we don't need to print one here.
 	return false;
     }
 
+    bool inverses_ok = check_inverses_and_create_split_nodes(ast_node, location);
+    if( ! inverses_ok){
+	// check inverses already prints the relevant error messages, we
+	// don't need to print one here.
+	return false;
+    }
 
     // check if group input to output is connected
     bool connected = check_group_connected(ast_node);
@@ -148,7 +160,7 @@ std::string check_duplicate_group(Group* ast_node){
 	}
 	group_names.insert(name);
     }
-    return false;
+    return "";
 }
 
 
@@ -182,8 +194,98 @@ bool check_duplicate_elements(Group* ast_node, std::string location){
 	std::cerr<< ": The node " << duplicate_node << " is defined multiple times.\n";
 	return false;
     }
+    return true;
 }
 
+
+
+// - CHECK INVERSES AND CREATE SPLIT NODES ---------------------------------------
+
+
+
+std::string invert_command(std::string command){
+    std::vector<std::string> command_words = str_split(command);
+
+    if(command_words.empty()){
+	return "";
+    }
+    
+    if(command_words[0] == "grep" ||
+       command_words[0] == "egrep" ){
+	return command + " -v";
+    }
+
+    if(command_words[0] == "cut"){
+	return command + " --complement";
+    }
+
+    return ""; //error, can't invert this command.
+}
+
+bool check_inverses_and_create_split_nodes(Group* ast_node, std::string location){
+    for(auto e:ast_node->children_edges){
+	if(e->mod_source == INVERSE){
+	    // check if the node to be inverted is a bash node
+	    if(e->source->node_type != BASH_NODE){
+		std::cerr<< "ERROR in " << location;
+		std::cerr<< ": can't invert node " << e->source->name << " as it is not a bash node.\n";
+		return false;
+	    }
+	}
+    }
+
+    for(auto n:ast_node->children_bash_nodes){
+	std::vector<Edge*> inverted_out;
+	std::vector<Edge*> normal_out;
+	for(auto e:n->out_edges){
+	    if(e->mod_source == INVERSE){
+		inverted_out.push_back(e);
+	    }else{
+		normal_out.push_back(e);
+	    }
+	}
+	if(inverted_out.empty()){
+	    // current bash node does not have inverted output
+	    continue;
+	}
+	
+	std::string command = n->bash_command;
+	    
+	// check if command can be inverted
+	std::string inverted = invert_command(command);
+	if(inverted == ""){
+	    std::cerr<< "ERROR in " << location;
+	    std::cerr<< ": can't invert commad " << command << " in node " << n->name << ".\n";
+	    return false;
+	}
+
+	// the node will now be splitted in to three nodes. one that keeps the
+	// input from the original node, which makes it easier to handle cases
+	// where the original node might be inputting from multiple places, one
+	// that contains the original command and one that conatins the inverse
+	// command.
+
+	Bash_node* splitter = n; // the in edges should be pointing to `splitter`
+	splitter->out_edges.clear();
+	
+	Bash_node* cmd_node = new Bash_node(command);
+	Bash_node* inv_node = new Bash_node(inverted);
+	cmd_node->name = splitter->name + "-cmd";
+	inv_node->name = splitter->name + "-inv";
+
+	Edge* e_split_cmd = new Edge(splitter->name, cmd_node->name, "", "");
+	Edge* e_split_inv = new Edge(splitter->name, inv_node->name, "", "");
+	e_split_cmd->source = splitter;
+	e_split_cmd->destination = cmd_node;
+	e_split_inv->source = splitter;
+	e_split_inv->destination = inv_node;
+
+	cmd_node->out_edges = normal_out;
+	inv_node->out_edges = inverted_out;
+    }
+    
+    return true;
+}
 
 // - CHECK IF A PATH FROM INPUT TO OUTPUT EXISTS ----------------------------------
 
@@ -454,7 +556,8 @@ bool check_inputs_to_nodes(Group* ast_node, std::string location){
 		vertical |= (e->mod_destination == VERTICAL);
 		if(e->mod_destination == NONE){
 		    std::cerr<< "ERROR in " << location;
-		    std::cerr<< ": node " << n->name << " has both inputs with and without join modifier.\n";
+		    std::cerr<< ": node " << n->name << " has multiple inputs but at least one ";
+		    std::cerr<< "of them without join modifier.\n";
 		    return false;
 		}
 	    }
@@ -536,4 +639,22 @@ std::string format_group_stack(std::stack<Group*> stack){
     std::reverse(names.begin(), names.end());
 
     return accumulate(names.begin(), names.end(), std::string("/"));
+}
+
+
+std::vector<std::string> str_split(std::string input){
+    std::vector<std::string> out;
+    std::string tmp = "";
+
+    for(auto c:input){
+	if(c == ' ' || c == '\n' || c == '\t'){
+	    if(tmp != ""){
+		out.push_back(tmp);
+		tmp = "";
+	    }
+	}else{
+	    tmp+=c;
+	}
+    }
+    return out;
 }

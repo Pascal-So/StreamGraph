@@ -19,11 +19,6 @@ bool Node::is_output(){
 }
 
 
-bool Node::has_inverse(){
-    return false;
-}
-
-
 bool Node::link_groups(std::unordered_map<std::string, Group*> & ){
     return true; // noop
 }

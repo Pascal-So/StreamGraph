@@ -5,42 +5,6 @@
 std::string version_number = "0.1";
 
 
-std::vector<std::string> str_split(std::string input){
-    std::vector<std::string> out;
-    std::string tmp = "";
-
-    for(auto c:input){
-	if(c == ' ' || c == '\n' || c == '\t'){
-	    if(tmp != ""){
-		out.push_back(tmp);
-		tmp = "";
-	    }
-	}else{
-	    tmp+=c;
-	}
-    }
-    return out;
-}
-
-std::string inverse_bash_command(std::string command){
-    std::vector<std::string> command_words = str_split(command);
-
-    if(command_words.empty()){
-	return "";
-    }
-    
-    if(command_words[0] == "grep"){
-	return command + " -v";
-    }
-
-    if(command_words[0] == "cut"){
-	return command + " --complement";
-    }
-
-    return ""; //error, can't inverse this command.
-}
-
-
 // takes a varable of the form BASH_VAR without quotes
 // and returns "${BASH_VAR}" with quotes in the string
 std::string format_bash_variable(std::string var_name){
@@ -97,9 +61,6 @@ std::string pipe_to_stream(std::vector<std::string> stream_vars){
 }
 
 
-std::string read_stdin(){
-    return "cat - ";
-}
 
 std::string read_file(int file_number){
     std::string out;
@@ -116,7 +77,7 @@ std::string execute_input_node(Node* node){
 	Io_node* ion = static_cast<Io_node*>(node);
 	out = read_file(ion->number);
     }else{
-	out = read_stdin();
+	out = "cat - ";
     }
     return out;
 }

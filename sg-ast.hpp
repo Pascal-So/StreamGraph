@@ -40,10 +40,6 @@ struct Node{
     
     bool is_input();
     bool is_output();
-    
-    // is modifier .inv applicable? Defaults to
-    // false, overridden by Bash_node if known
-    bool has_inverse(); 
 
     // takes the current namespace of groups as
     // map from group name to group pointer.
@@ -62,8 +58,6 @@ struct Node{
 
 struct Bash_node:Node{
     std::string bash_command;
-    
-    bool has_inverse();
 
     Bash_node(std::string bash_command);
 };
