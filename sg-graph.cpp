@@ -463,11 +463,30 @@ bool check_inputs_to_nodes(Group* ast_node, std::string location){
 		std::cerr<< ": node " << n->name << " has both horizontal and vertical inputs.\n";
 		return false;
 	    }
+
+	    // sort the in-edges by the mod number
+	    auto sorting_lambda = [](Edge* a, Edge* b) -> bool{
+		return (a->mod_nr_destination) < (b->mod_nr_destination);
+	    };
+	    std::sort(n->in_edges.begin(), n->in_edges.end(), sorting_lambda);
+
+	    // check if two in-edges have the same mod number
+	    int last_mod_nr = n->in_edges[0]->mod_nr_destination;
+	    for(int i = 1; i < (n->in_edges.size()); ++i){
+		int curr_mod_nr = n->in_edges[i]->mod_nr_destination;
+		if(curr_mod_nr == last_mod_nr){
+		    std::cerr<<"ERROR in " << location;
+		    std::cerr<<": multiple inputs to node " << n->name << " with the same merge number.\n";
+		    return false;
+		}
+		last_mod_nr = curr_mod_nr;
+	    }
+	    
 	}else{
 	    // only one input, we don't care about extension
 	}
     }
-    
+    return true;
 }
 
 
