@@ -280,8 +280,14 @@ bool check_inverses_and_create_split_nodes(Group* ast_node, std::string location
 	e_split_inv->source = splitter;
 	e_split_inv->destination = inv_node;
 
+	splitter->out_edges.push_back(e_split_cmd);
+	splitter->out_edges.push_back(e_split_inv);
+
 	cmd_node->out_edges = normal_out;
 	inv_node->out_edges = inverted_out;
+
+	ast_node->children_bash_nodes.push_back(cmd_node);
+	ast_node->children_bash_nodes.push_back(inv_node);
     }
     
     return true;

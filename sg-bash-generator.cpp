@@ -231,9 +231,7 @@ std::string generate_bash_script(Group* ast_root, std::string sg_core){
 
     out += print_header(ast_root->name, sg_core, 1, 0);
 
-
-
-
+    out += group_content(ast_root);
 
     out += print_footer();
     std::cout<<out<<"\n";

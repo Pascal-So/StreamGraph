@@ -10,11 +10,23 @@ void print_linker_error(std::string message){
 Node::~Node(){}
 
 bool Node::is_input(){
+    if(node_type == IO_NODE){
+	return static_cast<Io_node*>(this)->io_type == INPUT;
+    }
+    if(node_type == STDIO_NODE){
+	return static_cast<Stdio_node*>(this)->io_type == INPUT;
+    }
     return false;
 }
 
 
 bool Node::is_output(){
+    if(node_type == IO_NODE){
+	return static_cast<Io_node*>(this)->io_type == OUTPUT;
+    }
+    if(node_type == STDIO_NODE){
+	return static_cast<Stdio_node*>(this)->io_type == OUTPUT;
+    }
     return false;
 }
 
@@ -90,21 +102,23 @@ bool Instance_node::link_groups(std::unordered_map<std::string, Group*> & groups
 
 // The edge constructor
 Edge::Edge(std::string source_name,
-	   std::string destination_name,
 	   std::string mod_source_str,
+	   std::string destination_name,
 	   std::string mod_destination_str)
-    :
-    source_name(source_name),
-    destination_name(destination_name)
 {
+    this->source_name = source_name;
+    this->destination_name = destination_name;
+    
     mod_source = (mod_source_str == "inv") ? INVERSE : NONE;
     if(mod_destination_str == ""){
-	mod_destination = NONE;	
+	mod_destination = NONE;
+	mod_nr_destination = 0;
     }else{
 	mod_destination = (mod_destination_str[0] == 'h') ? HORIZONTAL : VERTICAL;
+	mod_nr_destination = stoi(mod_destination_str.substr(1));
     }
     
-    mod_nr_destination = stoi(mod_destination_str.substr(1));
+    
 
     needed = true;
 }
@@ -143,6 +157,8 @@ bool Edge::link_nodes(std::unordered_map<std::string, Node*> & nodes_namespace){
 
 Group::Group(){
     visited = false;
+    input_node = new Stdio_node(INPUT);
+    output_node = new Stdio_node(OUTPUT);
 }
 
 std::vector<Node*> Group::list_inputs(){

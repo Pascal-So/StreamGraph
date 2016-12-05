@@ -19,19 +19,13 @@
 
 int main(){
     
-    Group* ast = new Group();
-    generate_bash_script(ast, sg_core);
-
-    
-    
-    /*
     Lexer l ("program.sg");
 
     // lex the source code
     auto result = l.lex();
-    for(auto t:result){
-	std::cout<< t.first << "\t" << t.second<<"\n";
-    }
+    // for(auto t:result){
+    // 	std::cout<< t.first << "\t" << t.second<<"\n";
+    // }
 
     // parse the token stream
     Group* ast = parse(result);
@@ -56,10 +50,10 @@ int main(){
     }
 
     // generate the bash script
-    std::string bash_script = generate_bash_script(ast);
+    std::string bash_script = generate_bash_script(ast, sg_core);
     
     for(auto t:result){
 	std::cout<< t.first << "\t" << t.second<<"\n";
     }
-    */
+    
 }

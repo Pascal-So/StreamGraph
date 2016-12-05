@@ -14,9 +14,6 @@ void print_parse_error(std::string message){
 // keep track of nested groups
 Group* parse(std::vector<token> tokens){
     Group* out = new Group();
-
-    out->input_node = new Stdio_node(INPUT);
-    out->output_node = new Stdio_node(OUTPUT);
     
     std::stack<Group*> current_stack;
     current_stack.push(out);
@@ -36,11 +33,11 @@ Group* parse(std::vector<token> tokens){
 	    current_stack.push(new_group);
 	}
 	else if(t.first == "group_close"){
-	    current_stack.pop();
 	    if(current_stack.size() == 1){
 		print_parse_error("Found '}' but no group is currently open.");
 		return 0;
 	    }
+	    current_stack.pop();
 	}
 	else if(t.first == "edge"){
 	    std::string source_name = tokens[++i].second;
