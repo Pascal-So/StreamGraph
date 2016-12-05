@@ -6,3 +6,4 @@ sg
 *.o
 core-script.cpp
 core.min.sh
+argparse.*
