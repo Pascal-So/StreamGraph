@@ -10,8 +10,8 @@ g moveSecondFieldToEnd{
 
 # nodes
 n rearrange- moveSecondFieldToEnd
-n stuffToAppend/ infile 1
-n sort: sort
+n stuffToAppend/ infile 1 # a comment in a non-bash node
+n sort: sort # a comment in a bash node
 
 # edges
 e input rearrange

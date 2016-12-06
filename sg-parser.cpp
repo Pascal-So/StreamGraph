@@ -6,6 +6,49 @@ void print_parse_error(std::string message){
     std::cerr<<"PARSE ERROR: " << message << "\n";
 }
 
+std::string strip_bash_comments(std::string command){
+    // this variable will be set to 0 while outside a
+    // quote, and inside a quote it will hold the
+    // character used to quote.
+    char quote_char = 0;
+
+    // if the current character is a backslash, we need
+    // to ignore the next character.
+    bool ignore_next = false;
+
+    std::string out = "";
+    for(auto c:command){
+	if(ignore_next){
+	    ignore_next = false;
+	}
+	else{
+	    if(c == '\\'){
+		ignore_next = true;
+	    }
+	    else if(c == '\'' || c == '"'){
+		if(quote_char == 0){
+		    quote_char = c;
+		}
+		else if(quote_char == c){
+		    quote_char = 0;
+		}
+		else{
+		    // do nothing, we encountered a single
+		    // quote inside double quotes or vice
+		    // versa
+		}
+	    }
+	    else if(c == '#'){
+		if(quote_char == 0){
+		    return out;
+		}
+	    }
+	}
+	out += c;
+    }
+
+    return out;
+}
 
 // Takes a stream of tokens and translates
 // it in to the basic AST
@@ -52,7 +95,8 @@ Group* parse(std::vector<token> tokens){
 	else if(t.first == "node"){
 	    token node_data = tokens[++i];
 	    if (node_data.first == "bash_command"){
-		Bash_node* n = new Bash_node(node_data.second);
+		std::string clean_bash_command = strip_bash_comments(node_data.second);
+		Bash_node* n = new Bash_node(clean_bash_command);
 		n->name = t.second;
 		current_stack.top()->children_bash_nodes.push_back(n);
 	    }
