@@ -83,7 +83,7 @@ std::vector<token> Lexer::lex_node(){
 	return v_empty;
     }
 	
-    std::string name = scanner->get_alphanum();
+    std::string name = scanner->get_alphanumscore();
 
     std::vector<token> out = {{"node", name}};
 	
@@ -98,12 +98,12 @@ std::vector<token> Lexer::lex_node(){
 	out.push_back({"bash_command", command});
     }else if(scanner->match_string("/")){
 	// io node
-	std::string io_type = scanner->get_alphanum();
+	std::string io_type = scanner->get_alphanumscore();
 	if(io_type != "infile" && io_type != "outfile"){
 	    print_error("Expected type of io node ('infile' or 'outfile')");
 	    return v_error;
 	}
-	std::string number = scanner->get_alphanum();
+	std::string number = scanner->get_alphanumscore();
 	if(number == ""){
 	    print_error("Expected number of file");
 	    return v_error;
@@ -111,7 +111,7 @@ std::vector<token> Lexer::lex_node(){
 	out.push_back({io_type, number});
     }else if(scanner->match_string("-")){
 	// instance node
-	std::string name = scanner->get_alphanum();
+	std::string name = scanner->get_alphanumscore();
 	if(name == ""){
 	    print_error("Expected group name");
 	    return v_error;
@@ -130,7 +130,7 @@ std::vector<token> Lexer::lex_modifier(){
     std::vector<token> out;
     std::string mod = "";
     if(scanner->match_string(".")){
-	mod = scanner->get_alphanum();
+	mod = scanner->get_alphanumscore();
 	if(mod == ""){
 	    print_error("Expected node modifier");
 	    return v_error;
@@ -144,7 +144,7 @@ std::vector<token> Lexer::lex_modifier(){
 std::vector<token> Lexer::lex_mod_name(std::string token_name){
     std::vector<token> out;
 	
-    std::string name = scanner->get_alphanum();
+    std::string name = scanner->get_alphanumscore();
     if(name == ""){
 	print_error("Expected name of node");
 	return v_error;
@@ -195,7 +195,7 @@ std::vector<token> Lexer::lex_group_header(){
 	return v_empty;
     }
 
-    std::string name = scanner->get_alphanum();
+    std::string name = scanner->get_alphanumscore();
 
     if(name == ""){
 	print_error("Expected group name");

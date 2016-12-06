@@ -20,7 +20,7 @@ bool is_not_newline(char c){
     return (c!='\n' && c!='\r');
 }
 bool is_alphanumeric(char c){
-    return isalnum(c);
+    return isalnum(c) || c == '_';
 }
 bool is_digit(char c){
     return isdigit(c);
@@ -69,7 +69,7 @@ bool Scanner::match_string(std::string pattern){
 
 // consumes word made from letters and numbers. Returns
 // without leading or trailing whitespace.
-std::string Scanner::get_alphanum(){
+std::string Scanner::get_alphanumscore(){
     skip_whitespace();
     return get_while(&is_alphanumeric);
 }

@@ -97,12 +97,14 @@ function check_io_files {
 	exit 1
     fi
 
-    for f in "${input_files[@]}"; do
-	if [ ! -f "$f" ]; then
-	    echo "ERROR: file $f does not exist!" >&2
-	    exit 1
-	fi
-    done
+    if [ "${#input_files[@]}" -ne 0 ]; then
+	for f in "${input_files[@]}"; do
+	    if [ ! -f "$f" ]; then
+		echo "ERROR: file $f does not exist!" >&2
+		exit 1
+	    fi
+	done
+    fi
 }
 
 
