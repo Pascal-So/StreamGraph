@@ -129,3 +129,55 @@ c 3
 ```
 
 Horizontal and vertical merging are denoted by the `h` and `v` modifiers. The number after `h` or `v` represents the order in which the streams are merged.
+
+### IO nodes
+
+As demonstrated above, the IO nodes are all numbered, and the numbers then correspond to the filenames given as arguments when calling the compiled scripts.
+```bash
+./my-compiled-program.sh in_a.txt in_b.txt -o out_a.txt -o out_b.txt
+```
+
+To write to the file `out_a.txt` from within the script, the user would now pipe data to this node:
+```bash
+n that_output_file/ outfile 1
+```
+Note that the indexes are 1-based.
+
+I decided to go with numbers representing the command line arguments, instead of directly writing down the filenames, for several reasons:
+* On the conceptual side, StreamGraph scripts are supposed to care only about the flow of data through it, not about where exactly it comes from. This makes the scripts reusable.
+* StreamGraph scripts are compiled to bash scripts. If the filenames were hardcoded in the script, it would either require the user to recompile the script to change the filenames or to find the filenames in the compiled script if the filename changes on the disk.
+* The compiled StreamGraph scripts are supposed to be (at least somewhat) portable. Running a StreamGraph script should be independent of the directory structure.
+
+### Groups and recursion
+
+Yes, StreamGraph allows for recursion. An instance node can instanciate any of the groups defined on the same level, or any of its ancestor groups. This makes it possible for the recursion to even go up multiple layers.
+
+The base case of recursion is an empty stream, or a stream with an empty first line. This applies not only to recursion, but holds in general: a group will not be called, if the stream or its first line is empty. Instead, the instance node will return an empty string.
+
+```bash
+g print_tail{
+  n tail: tail -n +2
+  n rec- print_tail
+  e input tail
+  e tail rec
+  e rec output.h1
+  e input output.h0
+}
+
+n tail- print_tail
+e input tail
+```
+This simple example of recursion produces output like this:
+
+```bash
+$ ./sg recursion.sg
+$ chmod +x recursion.sh
+$ echo -e "a\nb\nc\nd" | ./recursion.sh
+a b c d 
+b c d 
+c d 
+d
+$
+```
+
+Note, however, that recursion is reeeeally slow, because groups internally use bash functions. More than 20 levels of recursion is not recommended.
