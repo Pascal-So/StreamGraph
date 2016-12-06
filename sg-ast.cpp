@@ -11,10 +11,10 @@ Node::~Node(){}
 
 bool Node::is_input(){
     if(node_type == IO_NODE){
-	return static_cast<Io_node*>(this)->io_type == INPUT;
+	return static_cast<Io_node*>(this)->is_input();
     }
     if(node_type == STDIO_NODE){
-	return static_cast<Stdio_node*>(this)->io_type == INPUT;
+	return static_cast<Stdio_node*>(this)->is_input();
     }
     return false;
 }
@@ -22,10 +22,10 @@ bool Node::is_input(){
 
 bool Node::is_output(){
     if(node_type == IO_NODE){
-	return static_cast<Io_node*>(this)->io_type == OUTPUT;
+	return static_cast<Io_node*>(this)->is_output();
     }
     if(node_type == STDIO_NODE){
-	return static_cast<Stdio_node*>(this)->io_type == OUTPUT;
+	return static_cast<Stdio_node*>(this)->is_output();
     }
     return false;
 }

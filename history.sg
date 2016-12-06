@@ -1,0 +1,13 @@
+e input history
+n history: cat
+n remove_first_col: cut -c8-
+
+n split: sed 's/\w*|\w*/\n/g'
+
+e history remove_first_col
+e remove_first_col split
+
+n sort: sort | uniq -c | sort -nr | head
+
+e split sort
+e sort output

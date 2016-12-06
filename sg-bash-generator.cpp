@@ -2,7 +2,7 @@
 #include<ctime>
 #include "sg-bash-generator.hpp"
 
-std::string version_number = "0.1";
+std::string version_number = "0.2";
 
 
 std::string sub_group(Group* ast_node);
@@ -249,7 +249,16 @@ std::string print_footer(){
 std::string generate_bash_script(Group* ast_root, std::string sg_core){
     std::string out = "";
 
-    out += print_header(ast_root->name, sg_core, 0, 0); // todo count io files
+    int nr_input_files = 0;
+    int nr_output_files = 0;
+    for(auto n:ast_root->children_io_nodes){
+	if(n->is_input()){
+	    nr_input_files ++;
+	}else{
+	    nr_output_files ++;
+	}
+    }
+    out += print_header(ast_root->name, sg_core, nr_input_files, nr_output_files);
 
     out += group_content(ast_root, false);
 
