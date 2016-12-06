@@ -1,12 +1,9 @@
 CC = g++
-CFLAGS = -Wall -Wextra -g -D_GLIBCXX_DEBUG -std=c++0x
+CFLAGS = -Wall -Wextra -g -D_GLIBCXX_DEBUG -std=c++0x -O3
 INCLUDED_FILES = sg-lexer sg-scanner sg-parser sg-ast sg-linker sg-graph sg-bash-generator argparse
-SOURCES = $(INCLUDED_FILES:=.cpp) sg.cpp
-HEADERS = $(INCLUDED_FILES:=.hpp)
 OBJECTS = $(INCLUDED_FILES:=.o) sg.o
 
-
-all: $(SOURCES) $(HEADERS) sg
+all: sg
 
 argparse.o: argparse.cpp argparse.hpp
 	$(CC) $(CFLAGS) -c argparse.cpp
@@ -47,7 +44,7 @@ sg: $(OBJECTS)
 
 
 clear:
-	rm sg
-	rm *.o
-	rm core.min.sh
-	rm core-script.cpp
+	rm -f sg
+	rm -f *.o
+	rm -f core.min.sh
+	rm -f core-script.cpp
