@@ -1,15 +1,13 @@
 # the streamgraph executable core
 # this provides some setup and cleanup functionality that
-# is needed when executing a sg program
-# Pascal Sommer, November 2016
+# is needed when executing a sg program. This code will
+# be included in the source of the compiled sg program
+# Pascal Sommer, 2016
 
-# most of this will probably be wrapped in functions so
-# that it can be called from the compiled streamgraph
-# program.
+# this file will be included in the compiled sg program
 
-# sg program will set variable $program_name with .sg exension
-
-set -u # throw an error if unset variables are used
+# throw an error if unset variables are used
+set -u
 
 # display information about logfiles, sub processes, etc.
 debug_messages="false"
@@ -41,11 +39,16 @@ fi
 input_files=() # unnamed arguments
 output_files=() # -o option arguments
 
+treat_file_argument_as_stdin="false";
+treat_file_argument_as_stdout="false";
+
 while [ $# -ge 1 ]; do
 
     # this construct can read unnamed arguments and option
     # arguments even if they're not in order
 
+    # while nr or arguments greater than one and
+    # first character of current argument not "-"
     while [ $# -ge 1 ] && [ ${1:0:1} != "-" ]; do
 	input_files+=($1)
 	shift
@@ -73,24 +76,44 @@ while [ $# -ge 1 ]; do
 done
 
 
+# check_io_files 1 0 0 3
+# arguments:
+#   has_stdin
+#   has_stdout
+#   nr input files
+#   nr output files
 function check_io_files {
     
-    if [ "$#" -ne 2 ]; then
-	echo "ERROR: function check_io_files requires two arguments!" >&2
+    if [ "$#" -ne 4 ]; then
+	echo "ERROR: function check_io_files requires four arguments!" >&2
 	exit 1
     fi
-    
-    nr_input_files="$1"
-    nr_output_files="$2"
-    
-    if [ $nr_input_files -ne ${#input_files[@]} ]; then
+
+    has_stdin="$1"
+    has_stdout="$2"
+    nr_input_files="$3"
+    nr_output_files="$4"
+
+    # special case: if program requires stdin but no input file, and one input file
+    # was given, use this input file as stdin
+    if [ "${#input_files[@]}" -eq 1 ] &&
+	   [ "$nr_input_files" -eq 0 ] &&
+	   [ "$has_stdin" -eq 1 ]; then
+	treat_file_argument_as_stdin="true";
+    elif [ $nr_input_files -ne ${#input_files[@]} ]; then
 	echo "ERROR: incorrect number of input files given!" >&2
 	echo "    Expected: $nr_input_files files" >&2
 	echo "    Given: ${#input_files[@]} files" >&2
 	exit 1
     fi
-    
-    if [ $nr_output_files -ne ${#output_files[@]} ]; then
+
+    # special case: if program requires stdout but no output file, and one output file
+    # was given, use this output file as stdout
+    if [ "${#output_files[@]}" -eq 1 ] &&
+	   [ "$nr_output_files" -eq 0 ] &&
+	   [ "$has_stdout" -eq 1 ]; then
+	treat_file_argument_as_stdout="true";
+    elif [ $nr_output_files -ne ${#output_files[@]} ]; then
 	echo "ERROR: incorrect number of output files given!" >&2
 	echo "    Expected: $nr_output_files files" >&2
 	echo "    Given: ${#output_files[@]} files" >&2
@@ -175,7 +198,7 @@ function wait_for_all_fifos_empty {
 	wait
 	wait
     done
-    if [ "$debug_messages" = true ]; then echo "Sub processes done" >&2; fi
+    if [ "$debug_messages" = "true" ]; then echo "Sub processes done" >&2; fi
 }
 
 
@@ -190,4 +213,21 @@ function ifne {
     else
 	(echo "$line"; cat) | eval "$@"
     fi
+}
+
+function call_main_function {
+    # if treat_file_argument_as_stdin is true, pipe the
+    # first file in input_files in to main. Similarly
+    # for stdout
+    if [ "$treat_file_argument_as_stdin" = "true" ]; then
+	cat "${input_files[0]}"
+    else
+	cat -
+    fi |
+	main |
+	if [ "$treat_file_argument_as_stdout" = "true" ]; then
+	    cat > "${output_files[0]}"
+	else
+	    cat
+	fi
 }

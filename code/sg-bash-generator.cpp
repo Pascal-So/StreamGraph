@@ -135,7 +135,7 @@ std::string edge_to_fifo_name(Edge* e){
 }
 
 
-std::string group_content(Group* ast_node, bool in_function){
+std::string group_content(Group* ast_node){
     std::string out;
 
     // first create all the functions for the subgroups
@@ -146,10 +146,8 @@ std::string group_content(Group* ast_node, bool in_function){
     out += "\n";
     
     // create fifos
-    // if we're inside a function we should use local variables.
-    std::string variable_prefix = in_function ? "local " : "";
     for(auto e:ast_node->children_edges){
-	out+= variable_prefix + edge_to_fifo_name(e) + "=$(get_fifo)\n";
+	out+= "local " + edge_to_fifo_name(e) + "=$(get_fifo)\n";
     }
 
     out += "\n";
@@ -215,13 +213,15 @@ std::string group_content(Group* ast_node, bool in_function){
 std::string sub_group(Group* ast_node){
     std::string out;
     out = ast_node->name + " () {\n";
-    out+= group_content(ast_node, true);
+    out+= group_content(ast_node);
     out+= "}\n";
     return out;
 }
 
 
-std::string print_header(std::string name, std::string sg_core, int input_files, int output_files){
+std::string print_header(std::string name, std::string sg_core,
+			 bool has_stdin, bool has_stdout,
+			 int input_files, int output_files){
     time_t now = time(0);
     // convert `now` to string form
     std::string str_datetime = ctime(&now);
@@ -241,16 +241,21 @@ std::string print_header(std::string name, std::string sg_core, int input_files,
     out+="# SG Core\n";
     out+="\n";
     out+=sg_core + "\n";
-    out+="check_io_files " + std::to_string(input_files) + " ";
+    
+    out+="check_io_files ";
+    out+=std::to_string((int)has_stdin) + " ";
+    out+=std::to_string((int)has_stdout) + " ";
+    out+=std::to_string(input_files) + " ";
     out+=std::to_string(output_files) + "\n";
     out+="\n";
+    
     out+="# Start actual generated code\n";
     out+="\n";
     return out;
 }
 std::string print_footer(){
     std::string out = "\n";
-    out+="\n";
+    out+="call_main_function\n\n";
     out+="# cleanup\n";
     out+="wait_for_all_fifos_empty\n";
     out+="delete_fifo_dir\n";
@@ -263,15 +268,20 @@ std::string generate_bash_script(Group* ast_root, std::string sg_core){
     int nr_input_files = 0;
     int nr_output_files = 0;
     for(auto n:ast_root->children_io_nodes){
+	Io_node* ion = static_cast<Io_node*>(n);
 	if(n->is_input()){
-	    nr_input_files ++;
+	    nr_input_files = std::max(nr_input_files, ion->number);
 	}else{
-	    nr_output_files ++;
+	    nr_output_files = std::max(nr_output_files, ion->number);
 	}
     }
-    out += print_header(ast_root->name, sg_core, nr_input_files, nr_output_files);
 
-    out += group_content(ast_root, false);
+    bool has_stdin = (ast_root->input_node != 0);
+    bool has_stdout = (ast_root->output_node != 0);
+    out += print_header(ast_root->name, sg_core, has_stdin, has_stdout, nr_input_files, nr_output_files);
+
+    ast_root->name = "main";
+    out += sub_group(ast_root);
 
     out += print_footer();
 
