@@ -2,7 +2,7 @@
 #include<ctime>
 #include "sg-bash-generator.hpp"
 
-std::string version_number = "0.2";
+std::string version_number = "0.3";
 
 
 std::string sub_group(Group* ast_node);
