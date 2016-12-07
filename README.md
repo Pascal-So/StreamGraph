@@ -148,6 +148,24 @@ I decided to go with numbers representing the command line arguments, instead of
 * StreamGraph scripts are compiled to bash scripts. If the filenames were hardcoded in the script, it would either require the user to recompile the script to change the filenames or to find the filenames in the compiled script if the filename changes on the disk.
 * The compiled StreamGraph scripts are supposed to be (at least somewhat) portable. Running a StreamGraph script should be independent of the directory structure.
 
+### stdio nodes
+
+The stdio nodes are the input and output node which can be accessed by edges without being created, they represent the standard input and output.
+
+```bash
+# a not very useful StreamGraph program:
+e input output
+# stdin is piped directly to stdout.
+```
+
+These nodes can also be overwritten (only with bash nodes), which allows the user to use bash commands such as `history` that don't take any input, and use the output in the sg program. Nodes that aren't reachable from an input node don't get called, therefore nodes with output-only bash command such as `history` wouldn't be possible otherwise.
+
+```bash
+# making the above StreamGraph program a tiny bit more useful
+e input output
+n input: history # this node overwrites the input node
+```
+
 ### Groups and recursion
 
 Yes, StreamGraph allows for recursion. An instance node can instanciate any of the groups defined on the same level, or any of its ancestor groups. This makes it possible for the recursion to even go up multiple layers.

@@ -10,6 +10,9 @@ void print_linker_error(std::string message){
 Node::~Node(){}
 
 bool Node::is_input(){
+    if(this == parent->input_node){
+	return true;
+    }
     if(node_type == IO_NODE){
 	return static_cast<Io_node*>(this)->is_input();
     }
@@ -21,6 +24,9 @@ bool Node::is_input(){
 
 
 bool Node::is_output(){
+    if(this == parent->output_node){
+	return true;
+    }
     if(node_type == IO_NODE){
 	return static_cast<Io_node*>(this)->is_output();
     }
@@ -170,8 +176,8 @@ Group::Group(Group* parent):parent(parent){
 
 std::vector<Node*> Group::list_inputs(){
     std::vector<Node*> out;
-    out.push_back(input_node);
-    for(auto n:children_io_nodes){
+    std::vector<Node*> nodes = list_all_nodes();
+    for(auto n:nodes){
 	if(n->is_input()){
 	    out.push_back(n);
 	}

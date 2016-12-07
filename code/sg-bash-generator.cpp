@@ -2,7 +2,7 @@
 #include<ctime>
 #include "sg-bash-generator.hpp"
 
-std::string version_number = "0.4";
+std::string version_number = "0.5";
 
 
 std::string sub_group(Group* ast_node);
@@ -92,6 +92,10 @@ std::string execute_input_node(Node* node){
     if(node->node_type == IO_NODE){
 	Io_node* ion = static_cast<Io_node*>(node);
 	out = read_file(ion->number);
+    }else if(node->node_type == BASH_NODE){
+	// input node has been overwritten
+	Bash_node* bn = static_cast<Bash_node*>(node);
+	out = bn->bash_command + " ";
     }else{
 	out = "cat - ";
     }
@@ -103,6 +107,10 @@ std::string execute_output_node(Node* node){
     if(node->node_type == IO_NODE){
 	Io_node* ion = static_cast<Io_node*>(node);
 	out = write_file(ion->number);
+    }else if(node->node_type == BASH_NODE){
+	// output node has been overwritten
+	Bash_node* bn = static_cast<Bash_node*>(node);
+	out = bn->bash_command + " ";
     }else{
 	out = "cat ";
     }
@@ -231,7 +239,7 @@ std::string print_header(std::string name, std::string sg_core,
     std::string str_datetime = ctime(&now);
     
     std::string out = "";
-    out+="#!/bin/bash\n";
+    //out+="#!/bin/bash\n";
     out+="\n";
     out+="# " + name + "\n";
     out+="# Compiled on " + str_datetime;
@@ -257,9 +265,10 @@ std::string print_header(std::string name, std::string sg_core,
     out+="\n";
     return out;
 }
-std::string print_footer(){
+std::string print_footer(bool has_stdin){
     std::string out = "\n";
-    out+="call_main_function\n\n";
+    out+="call_main_function ";
+    out+=std::to_string((int)has_stdin) + "\n\n";
     out+="# cleanup\n";
     out+="wait_for_all_fifos_empty\n";
     out+="delete_fifo_dir\n";
@@ -280,14 +289,14 @@ std::string generate_bash_script(Group* ast_root, std::string sg_core){
 	}
     }
 
-    bool has_stdin = (ast_root->input_node != 0);
-    bool has_stdout = (ast_root->output_node != 0);
+    bool has_stdin = (ast_root->input_node != 0) && ast_root->input_node->node_type == STDIO_NODE;
+    bool has_stdout = (ast_root->output_node != 0) && ast_root->output_node->node_type == STDIO_NODE;
     out += print_header(ast_root->name, sg_core, has_stdin, has_stdout, nr_input_files, nr_output_files);
 
     ast_root->name = "main";
     out += sub_group(ast_root);
 
-    out += print_footer();
+    out += print_footer(has_stdin);
 
     return out;
 }

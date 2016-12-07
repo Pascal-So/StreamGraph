@@ -215,14 +215,25 @@ function ifne {
     fi
 }
 
+# arguments:
+# - does the script read from stdin?
 function call_main_function {
+    if [ "$#" -ne 1 ]; then
+	echo "call_main_function requires one argumet." >&2
+	exit 1
+    fi
+    
     # if treat_file_argument_as_stdin is true, pipe the
     # first file in input_files in to main. Similarly
     # for stdout
     if [ "$treat_file_argument_as_stdin" = "true" ]; then
 	cat "${input_files[0]}"
     else
-	cat -
+	if [ "$1" -eq 1 ]; then
+	    cat -
+	else
+	    printf ""
+	fi
     fi |
 	main |
 	if [ "$treat_file_argument_as_stdout" = "true" ]; then

@@ -98,7 +98,16 @@ Group* parse(std::vector<token> tokens){
 		std::string clean_bash_command = strip_bash_comments(node_data.second);
 		Bash_node* n = new Bash_node(clean_bash_command, current_stack.top());
 		n->name = t.second;
-		current_stack.top()->children_bash_nodes.push_back(n);
+		if(n->name == "input"){
+		    // overriding the input node
+		    current_stack.top()->input_node = n;
+		}else if (n->name == "output"){
+		    // overriding the output node (don't know why you would do that, but
+		    // I guess I'll add it for the sake of symmetry...)
+		    current_stack.top()->output_node = n;
+		}else{
+		    current_stack.top()->children_bash_nodes.push_back(n);
+		}
 	    }
 	    else if(node_data.first == "instance"){
 		Instance_node* n = new Instance_node(node_data.second, current_stack.top());
