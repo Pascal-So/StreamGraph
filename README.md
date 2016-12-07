@@ -152,7 +152,7 @@ I decided to go with numbers representing the command line arguments, instead of
 
 Yes, StreamGraph allows for recursion. An instance node can instanciate any of the groups defined on the same level, or any of its ancestor groups. This makes it possible for the recursion to even go up multiple layers.
 
-The base case of recursion is an empty stream, or a stream with an empty first line. This applies not only to recursion, but holds in general: a group will not be called, if the stream or its first line is empty. Instead, the instance node will return an empty string.
+The base case of recursion is an empty stream, or a stream with an empty first line. A group recursion will not be called in that case.
 
 ```bash
 g print_tail{
