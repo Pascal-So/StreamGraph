@@ -56,7 +56,7 @@ std::string strip_bash_comments(std::string command){
 // instead an internal stack is used to
 // keep track of nested groups
 Group* parse(std::vector<token> tokens){
-    Group* out = new Group();
+    Group* out = new Group((Group*)0);
     
     std::stack<Group*> current_stack;
     current_stack.push(out);
@@ -69,7 +69,7 @@ Group* parse(std::vector<token> tokens){
 	token t = tokens[i];
 	
 	if(t.first == "group"){
-	    Group* new_group = new Group();
+	    Group* new_group = new Group(current_stack.top());
 	    new_group->name = t.second;
 	    
 	    current_stack.top()->children_groups.push_back(new_group);
@@ -96,12 +96,12 @@ Group* parse(std::vector<token> tokens){
 	    token node_data = tokens[++i];
 	    if (node_data.first == "bash_command"){
 		std::string clean_bash_command = strip_bash_comments(node_data.second);
-		Bash_node* n = new Bash_node(clean_bash_command);
+		Bash_node* n = new Bash_node(clean_bash_command, current_stack.top());
 		n->name = t.second;
 		current_stack.top()->children_bash_nodes.push_back(n);
 	    }
 	    else if(node_data.first == "instance"){
-		Instance_node* n = new Instance_node(node_data.second);
+		Instance_node* n = new Instance_node(node_data.second, current_stack.top());
 		n->name = t.second;
 		current_stack.top()->children_instance_nodes.push_back(n);
 	    }
@@ -111,7 +111,7 @@ Group* parse(std::vector<token> tokens){
 		    return 0;
 		}
 		int file_number = stoi(node_data.second);
-		Io_node* n = new Io_node(node_data.first, file_number);
+		Io_node* n = new Io_node(node_data.first, file_number, current_stack.top());
 		n->name = t.second;
 		current_stack.top()->children_io_nodes.push_back(n);
 	    }

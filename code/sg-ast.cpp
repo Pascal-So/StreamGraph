@@ -31,12 +31,8 @@ bool Node::is_output(){
 }
 
 
-bool Node::link_groups(std::unordered_map<std::string, Group*> & ){
-    return true; // noop
-}
-
-
-Bash_node::Bash_node(std::string bash_command):bash_command(bash_command){
+Bash_node::Bash_node(std::string bash_command, Group* parent):bash_command(bash_command){
+    this->parent = parent;
     visited = false;
     needed = false;
     cycle_dfs_active = false;
@@ -44,7 +40,8 @@ Bash_node::Bash_node(std::string bash_command):bash_command(bash_command){
 }
 
 
-Io_node::Io_node(std::string io_type_str, int number):number(number){
+Io_node::Io_node(std::string io_type_str, int number, Group* parent):number(number){
+    this->parent = parent;
     io_type = (io_type_str == "infile") ? INPUT : OUTPUT;
     visited = false;
     needed = false;
@@ -63,7 +60,8 @@ bool Io_node::is_output(){
 }
 
 
-Stdio_node::Stdio_node(Io_type io_type):io_type(io_type){
+Stdio_node::Stdio_node(Io_type io_type,Group* parent):io_type(io_type){
+    this->parent = parent;
     visited = false;
     needed = false;
     cycle_dfs_active = false;
@@ -81,9 +79,11 @@ bool Stdio_node::is_output(){
 }
 
 
-Instance_node::Instance_node(std::string group_name):group_name(group_name){
+Instance_node::Instance_node(std::string group_name,Group* parent):group_name(group_name){
+    this->parent = parent;
     visited = false;
     needed = false;
+    recursive = false;
     cycle_dfs_active = false;
     node_type = INSTANCE_NODE;
 }
@@ -92,6 +92,12 @@ Instance_node::Instance_node(std::string group_name):group_name(group_name){
 bool Instance_node::link_groups(std::unordered_map<std::string, Group*> & groups_namespace){
     if(groups_namespace.find(group_name) != groups_namespace.end()){
 	group = groups_namespace[group_name]; // link to group
+	if(group->parent != parent){
+	    // found a recursive call
+	    // this will have to be adjusted
+	    // if the namespace system changes
+	    recursive = true;
+	}
 	return true;
     }else{
 	print_linker_error("Group \"" + group_name + "\" could not be found.");
@@ -155,10 +161,11 @@ bool Edge::link_nodes(std::unordered_map<std::string, Node*> & nodes_namespace){
     return true;
 }
 
-Group::Group(){
+Group::Group(Group* parent):parent(parent){
     visited = false;
-    input_node = new Stdio_node(INPUT);
-    output_node = new Stdio_node(OUTPUT);
+    name = "";
+    input_node = new Stdio_node(INPUT, this);
+    output_node = new Stdio_node(OUTPUT, this);
 }
 
 std::vector<Node*> Group::list_inputs(){

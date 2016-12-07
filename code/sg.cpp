@@ -75,7 +75,7 @@ int main(int argc, char* argv[]){
     if (ast == 0){
 	return 1;
     }
-
+    
     ast->name = progam_name;
     
     // create an empty namespace to start the linker method

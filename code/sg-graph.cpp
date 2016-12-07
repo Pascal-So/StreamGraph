@@ -277,8 +277,8 @@ bool check_inverses_and_create_split_nodes(Group* ast_node, std::string location
 	splitter->out_edges.clear();
 	splitter->bash_command = "cat";
 	
-	Bash_node* cmd_node = new Bash_node(command);
-	Bash_node* inv_node = new Bash_node(inverted);
+	Bash_node* cmd_node = new Bash_node(command, ast_node);
+	Bash_node* inv_node = new Bash_node(inverted, ast_node);
 	cmd_node->name = splitter->name + "__cmd";
 	inv_node->name = splitter->name + "__inv";
 

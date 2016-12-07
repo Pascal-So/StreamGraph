@@ -26,6 +26,8 @@ struct Node{
 
     virtual ~Node();
 
+    Group* parent;
+
     bool visited;
 
     // is set to false by default because if
@@ -41,12 +43,6 @@ struct Node{
     bool is_input();
     bool is_output();
 
-    // takes the current namespace of groups as
-    // map from group name to group pointer.
-    // Defaults to noop but is overriden by the
-    // instance nodes.
-    bool link_groups(std::unordered_map<std::string, Group*> &);
-
     // outwards edges in the DAG. The edge
     // structs contain the additional
     // information such as shadow node
@@ -59,7 +55,7 @@ struct Node{
 struct Bash_node:Node{
     std::string bash_command;
 
-    Bash_node(std::string bash_command);
+    Bash_node(std::string bash_command, Group* parent);
 };
 
 struct Io_node:Node{
@@ -69,16 +65,21 @@ struct Io_node:Node{
     bool is_input();
     bool is_output();
 
-    Io_node(std::string io_type, int number);
+    Io_node(std::string io_type, int number, Group* parent);
 };
 
 struct Instance_node:Node{
     std::string group_name;
 
+    bool recursive;
+    
     Group* group;
+
+    // takes the current namespace of groups as
+    // map from group name to group pointer.
     bool link_groups(std::unordered_map<std::string, Group*> &);
 
-    Instance_node(std::string group_name);
+    Instance_node(std::string group_name, Group* parent);
 };
 
 // these nodes are created by the parser,
@@ -90,7 +91,7 @@ struct Stdio_node:Node{
     bool is_input();
     bool is_output();
 
-    Stdio_node(Io_type io_type);
+    Stdio_node(Io_type io_type, Group* parent);
 };
 
 struct Edge{
@@ -120,10 +121,12 @@ struct Edge{
 
 struct Group{
     bool visited; //used by sg-linker -> link to avoid infinite loop
+
+    Group* parent;
     
     //used by sg-graph checker to see if any instances are made of
     // this group
-    bool needed; 
+    bool needed;
     std::string name;
     std::vector<Group*> children_groups;
     std::vector<Bash_node*> children_bash_nodes;
@@ -133,7 +136,7 @@ struct Group{
     Stdio_node* input_node;
     Stdio_node* output_node;
 
-    Group();
+    Group(Group* parent);
     std::vector<Node*> list_inputs();
     std::vector<Node*> list_all_nodes();
 };
