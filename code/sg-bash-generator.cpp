@@ -25,6 +25,13 @@ std::string format_bash_variable(std::string var_name){
 std::string merge_streams(std::vector<std::string> stream_vars, bool horizontal){
     std::string out;
     size_t nr_vars = stream_vars.size();
+    
+    if(nr_vars == 1){
+	out = "cat " + format_bash_variable(stream_vars[0]);
+	return out;
+    }
+    
+    
     if(horizontal){
 	out = "paste -d\" \" ";
 	for(auto v:stream_vars){
@@ -48,6 +55,10 @@ std::string pipe_to_stream(std::string stream_var){
     return "cat > " + format_bash_variable(stream_var);
 }
 std::string pipe_to_stream(std::vector<std::string> stream_vars){
+    if(stream_vars.size() == 1){
+	return pipe_to_stream(stream_vars[0]);
+    }
+    
     std::string out = "tee ";
     for(auto v:stream_vars){
 	out+= format_bash_variable(v);

@@ -174,8 +174,12 @@ std::vector<Node*> Group::list_inputs(){
 
 std::vector<Node*> Group::list_all_nodes(){
     std::vector<Node*> out;
-    out.push_back(input_node);
-    out.push_back(output_node);
+    if(input_node != 0){
+	out.push_back(input_node);
+    }
+    if(output_node != 0){
+	out.push_back(output_node);
+    }
     for(auto n:children_io_nodes){
 	out.push_back(n);
     }

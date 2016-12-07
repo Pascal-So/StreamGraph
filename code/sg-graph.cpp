@@ -627,22 +627,11 @@ void vector_append(std::vector<T> &a, std::vector<U> &b){
 
 // only resets the nodes on one level.
 void reset_visited_nodes(Group* ast_node){
-    for(auto n:ast_node->children_bash_nodes){
+    std::vector<Node*> nodes = ast_node->list_all_nodes();
+    for(auto n:nodes){
 	n->visited = false;
 	n->cycle_dfs_active = false;
     }
-    for(auto n:ast_node->children_io_nodes){
-	n->visited = false;
-	n->cycle_dfs_active = false;
-    }
-    for(auto n:ast_node->children_instance_nodes){
-	n->visited = false;
-	n->cycle_dfs_active = false;
-    }
-    ast_node->input_node->visited = false;
-    ast_node->input_node->cycle_dfs_active = false;
-    ast_node->output_node->visited = false;
-    ast_node->output_node->cycle_dfs_active = false;
 }
 
 
