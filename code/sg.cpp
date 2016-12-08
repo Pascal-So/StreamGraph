@@ -21,6 +21,17 @@ std::string get_base_name(std::string name){
     return name.substr(name.find_last_of("/") + 1);
 }
 
+std::string get_date(){
+    time_t now = time(0);
+    // convert `now` to string form
+    std::string str_datetime = ctime(&now);
+    return str_datetime;
+}
+
+void compilation_failed(){
+    std::cerr<<"Compilation \033[0;31mfailed\033[0m at " << get_date() << "\n";
+}
+
 int main(int argc, char* argv[]){
 
     // parse options with argparse
@@ -77,6 +88,7 @@ int main(int argc, char* argv[]){
     // parse the token stream
     Group* ast = parse(result);
     if (ast == 0){
+	compilation_failed();
 	return 1;
     }
     
@@ -87,6 +99,7 @@ int main(int argc, char* argv[]){
     // link the DAG pointers in the AST
     bool link_ok = link(ast, gn);
     if ( ! link_ok){
+	compilation_failed();
 	return 1;
     }
 
@@ -95,6 +108,7 @@ int main(int argc, char* argv[]){
     // check the graph for errors and remove unneccessary parts
     bool graph_ok = groups_check(ast, empty_group_stack);
     if ( ! graph_ok){
+	compilation_failed();
 	return 1;
     }
 

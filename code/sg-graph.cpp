@@ -31,6 +31,9 @@
 template<typename T, typename U>
 void vector_append(std::vector<T> &a, std::vector<U> &b);
 
+void print_warning(std::string message, std::string location);
+void print_error(std::string message, std::string location);
+
 void reset_visited_nodes(Group* ast_node);
 
 std::string join(std::vector<std::string> words, std::string delimiter);
@@ -88,7 +91,7 @@ bool group_check(Group* ast_node, std::string location){
     // check if group input to output is connected
     bool connected = check_group_connected(ast_node);
     if( ! connected){
-	std::cerr<< "ERROR in " << location << ": No path from input to output.\n";
+	print_error("No path from input to output", location);
 	return false;
     }
 
@@ -115,7 +118,7 @@ bool group_check(Group* ast_node, std::string location){
     }
     if(! cycle.empty()){
 	// found a cycle
-	std::cerr<<"ERROR in " << location << ": The program forms an infinite loop.\n";
+	print_error("The program forms an infinite loop.", location);
 	for(auto n:cycle){
 	    std::cerr<<"  " << n->name << "\n";
 	}
@@ -192,15 +195,13 @@ bool check_duplicate_elements(Group* ast_node, std::string location){
     // check if group has conflicting group or node definitions
     std::string duplicate_group = check_duplicate_group(ast_node);
     if(duplicate_group != ""){
-	std::cerr<< "ERROR in " << location;
-	std::cerr<< ": The group " << duplicate_group << " is defined multiple times.\n";
+	print_error("The group " + duplicate_group + " is defined multiple times.", location);
 	return false;
     }
 
     std::string duplicate_node = check_duplicate_node(ast_node);
     if(duplicate_node != ""){
-	std::cerr<< "ERROR in " << location;
-	std::cerr<< ": The node " << duplicate_node << " is defined multiple times.\n";
+	print_error("The node " + duplicate_node + " is defined multiple times.", location);
 	return false;
     }
     return true;
@@ -236,8 +237,8 @@ bool check_inverses_and_create_split_nodes(Group* ast_node, std::string location
 	if(e->mod_source == INVERSE){
 	    // check if the node to be inverted is a bash node
 	    if(e->source->node_type != BASH_NODE){
-		std::cerr<< "ERROR in " << location;
-		std::cerr<< ": can't invert node " << e->source->name << " as it is not a bash node.\n";
+		print_error("Can't invert node " + e->source->name +
+				 " as it is not a bash node.", location);
 		return false;
 	    }
 	}
@@ -264,8 +265,7 @@ bool check_inverses_and_create_split_nodes(Group* ast_node, std::string location
 	// check if command can be inverted
 	std::string inverted = invert_command(command);
 	if(inverted == ""){
-	    std::cerr<< "ERROR in " << location;
-	    std::cerr<< ": can't invert commad " << command << " in node " << n->name << ".\n";
+	    print_error("Can't invert commad " + command + " in node " + n->name + ".", location);
 	    return false;
 	}
 
@@ -448,8 +448,7 @@ void remove_unneeded_nodes(Group* ast_node, std::string location){
     }
 
     if(! remove.empty()){
-	std::cerr<<"Warning in " << location;
-	std::cerr<<": Removing unneeded nodes:\n";
+	print_warning("Removing unneeded nodes:", location);
 	for(auto n:remove){
 	    std::cerr<<"    " << n->name <<"\n";
 	    delete n;
@@ -561,8 +560,7 @@ void remove_unneeded_groups(Group* ast_node, std::string location){
     std::vector<Group*> needed_groups;
     for(auto & g:ast_node->children_groups){
 	if( ! g->needed){
-	    std::cerr<<"Warning in " << location;
-	    std::cerr<<": Group \"" << g->name << "\" not needed.\n";
+	    print_warning("Group \"" + g->name + "\" not needed.", location);
 	    delete g;
 	}else{
 	    needed_groups.push_back(g);
@@ -595,15 +593,14 @@ bool check_inputs_to_nodes(Group* ast_node, std::string location){
 		horizontal |= (e->mod_destination == HORIZONTAL);
 		vertical |= (e->mod_destination == VERTICAL);
 		if(e->mod_destination == NONE){
-		    std::cerr<< "ERROR in " << location;
-		    std::cerr<< ": node " << n->name << " has multiple inputs but at least one ";
-		    std::cerr<< "of them without join modifier.\n";
+		    print_error("Node " + n->name + " has multiple inputs but at least " +
+				     "one of them without join modifier.\n", location);
 		    return false;
 		}
 	    }
 	    if(horizontal && vertical){
-		std::cerr<< "ERROR in " << location;
-		std::cerr<< ": node " << n->name << " has both horizontal and vertical inputs.\n";
+		print_error("Node " + n->name + " has both horizontal and vertical " +
+				 "inputs.", location);
 		return false;
 	    }
 
@@ -618,8 +615,8 @@ bool check_inputs_to_nodes(Group* ast_node, std::string location){
 	    for(int i = 1; i < (n->in_edges.size()); ++i){
 		int curr_mod_nr = n->in_edges[i]->mod_nr_destination;
 		if(curr_mod_nr == last_mod_nr){
-		    std::cerr<<"ERROR in " << location;
-		    std::cerr<<": multiple inputs to node " << n->name << " with the same merge number.\n";
+		    print_error("Multiple inputs to node " + n->name + " with the same " +
+				"merge number.", location);
 		    return false;
 		}
 		last_mod_nr = curr_mod_nr;
@@ -696,4 +693,13 @@ std::vector<std::string> str_split(std::string input){
 	}
     }
     return out;
+}
+
+void print_warning(std::string message, std::string location){
+    std::cout<<"\033[0;33mWarning\033[0m in " << location << ": " << message <<"\n";
+}
+
+
+void print_error(std::string message, std::string location){
+    std::cout<<"\033[0;31mERROR\033[0m in " << location << ": " << message <<"\n";
 }
