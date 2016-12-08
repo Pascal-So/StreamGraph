@@ -14,10 +14,10 @@
 // - Check inverses and create split nodes
 // - Check if a path from input to output exists
 // - Remove out_edges on nodes leading to dead ends
-// - remove unneeded nodes
+// - Remove unneeded nodes
 // - Remove unneeded edges
-// - Check for cycles
 // - Remove unneeded groups
+// - Check for cycles
 // - Check inputs to nodes
 //
 // The checks are performed in this order. They happen
@@ -54,11 +54,11 @@ void remove_unneeded_nodes(Group* ast_node, std::string location);
 // remove unneeded edges
 void remove_unneeded_edges(Group* ast_node);
 
-// remove cycles
-std::vector<Node*> dfs_check_cycles(Node* n);
-
 // remove unneeded groups
 void remove_unneeded_groups(Group* ast_node, std::string location);
+
+// remove cycles
+std::vector<Node*> dfs_check_cycles(Node* n);
 
 // check inputs to nodes
 bool check_inputs_to_nodes(Group* ast_node, std::string location);
@@ -95,9 +95,9 @@ bool group_check(Group* ast_node, std::string location){
 	dfs_remove_dead_out_edges(n);
     }
 
-    
     remove_unneeded_nodes(ast_node, location);
     remove_unneeded_edges(ast_node);
+    remove_unneeded_groups(ast_node, location);
 
     // check for cycles
     reset_visited_nodes(ast_node);
@@ -118,8 +118,6 @@ bool group_check(Group* ast_node, std::string location){
 	}
 	return false;
     }
-
-    remove_unneeded_groups(ast_node, location);
 
     bool inputs_ok = check_inputs_to_nodes(ast_node, location);
     if( ! inputs_ok){
@@ -459,6 +457,52 @@ void remove_unneeded_edges(Group* ast_node){
     }
 }
 
+// - REMOVE UNNEEDED GROUPS -------------------------------------------------
+
+
+// a group can only be instanciated from a instance
+// node on the same level or one further down. The
+// instanciation further down only matters if the
+// group gets instanciated at least one from the
+// outside. Therefore, to see if a group is needed,
+// we only need to check on the same level.
+// This function checks for a given ast_node all the
+// subgroups.
+void determine_groups_needed(Group* ast_node){
+    for(auto g:ast_node->children_groups){
+	// reset needed flags on groups.
+	g->needed = false;
+    }
+    for(auto n:ast_node->children_instance_nodes){
+        // we don't need to check for the `needed`
+	// flag on the node because the function
+	// `remove_unneeded_nodes` has taken care
+	// of this.
+
+	// set the needed flag on the group. If
+	// the node references a group in a level
+	// further up, this doesn't matter because
+	// they already have the needed flag set
+	// anyway.
+	n->group->needed = true;
+    }
+}
+
+
+void remove_unneeded_groups(Group* ast_node, std::string location){
+    determine_groups_needed(ast_node);
+    
+    auto remove = extract_unneeded_elements_from_vector(ast_node->children_groups);
+    if(! remove.empty()){
+	print_warning("Removing unneeded groups:", location);
+	for(auto g:remove){
+	    std::cerr<<"    " << g->name <<"\n";
+	    delete g;
+	}
+    }
+}
+
+
 // - CHECK FOR CYCLES -------------------------------------------------------
 
 
@@ -512,58 +556,6 @@ std::vector<Node*> dfs_check_cycles(Node* n){
     n->cycle_dfs_active = false;
 
     return cycle_nodes;
-}
-
-
-
-// - REMOVE UNNEEDED GROUPS -------------------------------------------------
-
-
-
-// a group can only be instanciated from a instance
-// node on the same level or one further down. The
-// instanciation further down only matters if the
-// group gets instanciated at least one from the
-// outside. Therefore, to see if a group is needed,
-// we only need to check on the same level.
-// This function checks for a given ast_node all the
-// subgroups.
-void determine_groups_needed(Group* ast_node){
-    for(auto g:ast_node->children_groups){
-	// reset needed flags on groups.
-	g->needed = false;
-    }
-    for(auto n:ast_node->children_instance_nodes){
-        // we don't need to check for the `needed`
-	// flag on the node because the function
-	// `remove_unneeded_nodes` has taken care
-	// of this.
-
-	// set the needed flag on the group. If
-	// the node references a group in a level
-	// further up, this doesn't matter because
-	// they already have the needed flag set
-	// anyway.
-	n->group->needed = true;
-    }
-}
-
-
-void remove_unneeded_groups(Group* ast_node, std::string location){
-    determine_groups_needed(ast_node);
-    std::vector<Group*> needed_groups;
-    for(auto & g:ast_node->children_groups){
-	if( ! g->needed){
-	    print_warning("Group \"" + g->name + "\" not needed.", location);
-	    delete g;
-	}else{
-	    needed_groups.push_back(g);
-	}
-    }
-
-    // only keep the pointers to the needed groups,
-    // because the other groups have been deleted.
-    ast_node->children_groups = needed_groups;
 }
 
 
