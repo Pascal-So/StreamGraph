@@ -594,7 +594,7 @@ bool check_inputs_to_nodes(Group* ast_node, std::string location){
 		vertical |= (e->mod_destination == VERTICAL);
 		if(e->mod_destination == NONE){
 		    print_error("Node " + n->name + " has multiple inputs but at least " +
-				     "one of them without join modifier.\n", location);
+				     "one of them without join modifier.", location);
 		    return false;
 		}
 	    }

@@ -48,7 +48,7 @@ public:
 
     std::vector<token> lex();
     
-    Lexer(std::string file_path); 
+    Lexer(std::string file_path, std::ifstream & infile); 
 };
 
 #endif

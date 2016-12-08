@@ -20,8 +20,8 @@ void vector_append(std::vector<T> &v1, const std::vector<T> &v2){
 
 // ****************** Public functions *****************************
 
-Lexer::Lexer(std::string file_path): file_path(file_path){
-    scanner = new Scanner(file_path);
+Lexer::Lexer(std::string file_path, std::ifstream & infile): file_path(file_path){
+    scanner = new Scanner(file_path, infile);
     v_error.push_back({"ERROR", "ERROR"});
 }
 
@@ -71,7 +71,7 @@ std::vector<token> Lexer::lex(){
 // *********************  Private functions ************************
 
 void Lexer::print_error(std::string message){
-    std::cerr<<"ERROR in " << scanner->get_position() << ": " << message <<"\n";
+    std::cerr<<"\033[0;31mERROR\033[0m in " << scanner->get_position() << ": " << message <<"\n";
 }
 
 // the lex_<type> functions return the lexed tokens if
