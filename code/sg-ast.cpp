@@ -9,33 +9,6 @@ void print_linker_error(std::string message){
 
 Node::~Node(){}
 
-bool Node::is_input(){
-    if(this == parent->input_node){
-	return true;
-    }
-    if(node_type == IO_NODE){
-	return static_cast<Io_node*>(this)->is_input();
-    }
-    if(node_type == STDIO_NODE){
-	return static_cast<Stdio_node*>(this)->is_input();
-    }
-    return false;
-}
-
-
-bool Node::is_output(){
-    if(this == parent->output_node){
-	return true;
-    }
-    if(node_type == IO_NODE){
-	return static_cast<Io_node*>(this)->is_output();
-    }
-    if(node_type == STDIO_NODE){
-	return static_cast<Stdio_node*>(this)->is_output();
-    }
-    return false;
-}
-
 
 Bash_node::Bash_node(std::string bash_command, Group* parent):bash_command(bash_command){
     this->parent = parent;
@@ -43,6 +16,14 @@ Bash_node::Bash_node(std::string bash_command, Group* parent):bash_command(bash_
     needed = false;
     cycle_dfs_active = false;
     node_type = BASH_NODE;
+}
+
+bool Bash_node::is_input(){
+    return (this->parent->input_node == this);
+}
+
+bool Bash_node::is_output(){
+    return (this->parent->output_node == this);
 }
 
 
@@ -92,6 +73,14 @@ Instance_node::Instance_node(std::string group_name,Group* parent):group_name(gr
     recursive = false;
     cycle_dfs_active = false;
     node_type = INSTANCE_NODE;
+}
+
+bool Instance_node::is_input(){
+    return false;
+}
+
+bool Instance_node::is_output(){
+    return false;
 }
 
 

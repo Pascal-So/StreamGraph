@@ -18,8 +18,9 @@
 
 class Scanner{
     std::string buffer;
-    std::ifstream& infile;
     std::string file_path;
+    std::ifstream& infile;
+    
     
     // has filestream reached eof? if this is true, buffer could still be non-
     // empty.

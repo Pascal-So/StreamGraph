@@ -40,8 +40,8 @@ struct Node{
     // yet.
     bool cycle_dfs_active;
     
-    bool is_input();
-    bool is_output();
+    virtual bool is_input() = 0;
+    virtual bool is_output() = 0;
 
     // outwards edges in the DAG. The edge
     // structs contain the additional
@@ -54,6 +54,9 @@ struct Node{
 
 struct Bash_node:Node{
     std::string bash_command;
+
+    bool is_input();
+    bool is_output();
 
     Bash_node(std::string bash_command, Group* parent);
 };
@@ -72,6 +75,9 @@ struct Instance_node:Node{
     std::string group_name;
 
     bool recursive;
+
+    bool is_input();
+    bool is_output();
     
     Group* group;
 

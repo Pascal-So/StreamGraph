@@ -5,18 +5,8 @@ g print_tail{
   e tail rec
   e rec output.h1
   e input output.h0
-  n lk: cat
-  g a{
-  }
 }
 
 n tail- print_tail
-n asdf: cat
 e input tail
 e tail output
-e input output.v1
-
-g a{
-}
-
-n inst- a
