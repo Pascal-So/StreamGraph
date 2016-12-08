@@ -33,6 +33,8 @@ void vector_append(std::vector<T> &a, std::vector<U> &b);
 
 void reset_visited_nodes(Group* ast_node);
 
+std::string join(std::vector<std::string> words, std::string delimiter);
+
 std::string format_group_stack(std::stack<Group*> stack);
 
 std::vector<std::string> str_split(std::string input);
@@ -50,7 +52,7 @@ bool check_group_connected(Group* ast_node);
 void dfs_remove_dead_out_edges(Node* n);
 
 // remove unneeded nodes
-void remove_unneeded_nodes(Group* ast_node);
+void remove_unneeded_nodes(Group* ast_node, std::string location);
 
 // remove unneeded edges
 void remove_unneeded_edges(Group* ast_node);
@@ -59,7 +61,7 @@ void remove_unneeded_edges(Group* ast_node);
 std::vector<Node*> dfs_check_cycles(Node* n);
 
 // remove unneeded groups
-void remove_unneeded_groups(Group* ast_node);
+void remove_unneeded_groups(Group* ast_node, std::string location);
 
 // check inputs to nodes
 bool check_inputs_to_nodes(Group* ast_node, std::string location);
@@ -97,7 +99,7 @@ bool group_check(Group* ast_node, std::string location){
     }
 
     
-    remove_unneeded_nodes(ast_node);
+    remove_unneeded_nodes(ast_node, location);
     remove_unneeded_edges(ast_node);
 
     // check for cycles
@@ -120,7 +122,7 @@ bool group_check(Group* ast_node, std::string location){
 	return false;
     }
 
-    remove_unneeded_groups(ast_node);
+    remove_unneeded_groups(ast_node, location);
 
     bool inputs_ok = check_inputs_to_nodes(ast_node, location);
     if( ! inputs_ok){
@@ -143,7 +145,7 @@ bool groups_check(Group* current_group, std::stack<Group*> current_group_stack){
     }
     
     for(auto g:current_group->children_groups){
-	if( ! group_check(g, location)){
+	if( ! groups_check(g, current_group_stack)){
 	    return false;
 	}
     }
@@ -400,50 +402,68 @@ void dfs_remove_dead_out_edges(Node* n){
 }
 
 
+// - REMOVE UNNEEDED NODES ----------------------------------------------
+
 // T should be a derived node like Bash_node or an edge
+// the elements in the vector that have the `needed` flag set to false will
+// be returned in a new pointer vector and removed from the original vector,
+// the other ones remain, filling in the now empty places.
 template<typename T>
-void cleanup_unneeded_elements_in_vector(std::vector<T*> & elements){
+std::vector<T*> extract_unneeded_elements_from_vector(std::vector<T*> & elements){
     int i = 0;
+    std::vector<T*> out;
     for(auto & el:elements){
 	if(! el->needed){
-	    // base class destructor has to be virtual,
-	    // otherwise this results in undefined
-	    // behaviour
-	    delete el;
+	    out.push_back(el);
 	}else{
 	    elements[i] = el;
 	    ++i;
 	}
     }
     elements.resize(i);
+
+    return out;
 }
-
-
-// - REMOVE UNNEEDED NODES
 
 
 // This function has to be called after dfs_remove_dead_out_edges,
 // because otherwise the pointers in the out_edges vector might
 // refer to deleted objects.
-void remove_unneeded_nodes(Group* ast_node){
-    cleanup_unneeded_elements_in_vector(ast_node->children_bash_nodes);
-    cleanup_unneeded_elements_in_vector(ast_node->children_instance_nodes);
-    cleanup_unneeded_elements_in_vector(ast_node->children_io_nodes);
+void remove_unneeded_nodes(Group* ast_node, std::string location){
+    auto unneeded_bash_nodes = extract_unneeded_elements_from_vector(ast_node->children_bash_nodes);
+    auto unneeded_instance_nodes = extract_unneeded_elements_from_vector(ast_node->children_instance_nodes);
+    auto unneeded_io_nodes = extract_unneeded_elements_from_vector(ast_node->children_io_nodes);
+    
+    std::vector<Node*> remove;
+    vector_append(remove, unneeded_bash_nodes);
+    vector_append(remove, unneeded_instance_nodes);
+    vector_append(remove, unneeded_io_nodes);
     if( ! ast_node->input_node->needed ){
-	
-	delete ast_node->input_node;
+	remove.push_back(ast_node->input_node);
 	ast_node->input_node = 0;
     }
     if( ! ast_node->output_node->needed ){
-	delete ast_node->output_node;
+	remove.push_back(ast_node->output_node);
 	ast_node->output_node = 0;
+    }
+
+    if(! remove.empty()){
+	std::cerr<<"Warning in " << location;
+	std::cerr<<": Removing unneeded nodes:\n";
+	for(auto n:remove){
+	    std::cerr<<"    " << n->name <<"\n";
+	    delete n;
+	}
     }
 }
 
-// - REMOVE UNNEEDED NODES
+// - REMOVE UNNEEDED EDGES -----------------------------------------
 
 void remove_unneeded_edges(Group* ast_node){
-    cleanup_unneeded_elements_in_vector(ast_node->children_edges);
+    auto remove = extract_unneeded_elements_from_vector(ast_node->children_edges);
+    for(auto e:remove){
+	delete e;
+    }
 }
 
 // - CHECK FOR CYCLES -------------------------------------------------------
@@ -536,11 +556,13 @@ void determine_groups_needed(Group* ast_node){
 }
 
 
-void remove_unneeded_groups(Group* ast_node){
+void remove_unneeded_groups(Group* ast_node, std::string location){
     determine_groups_needed(ast_node);
     std::vector<Group*> needed_groups;
     for(auto & g:ast_node->children_groups){
 	if( ! g->needed){
+	    std::cerr<<"Warning in " << location;
+	    std::cerr<<": Group \"" << g->name << "\" not needed.\n";
 	    delete g;
 	}else{
 	    needed_groups.push_back(g);
@@ -634,6 +656,16 @@ void reset_visited_nodes(Group* ast_node){
     }
 }
 
+std::string join(std::vector<std::string> words, std::string delimiter){
+    std::string out = "";
+
+    size_t n = words.size();
+    for(size_t i = 0; i < n-1; ++i){
+	out += words[i] + delimiter;
+    }
+    out+=words[n-1];
+    return out;
+}
 
 std::string format_group_stack(std::stack<Group*> stack){
     std::vector<std::string> names;
@@ -645,7 +677,7 @@ std::string format_group_stack(std::stack<Group*> stack){
 
     std::reverse(names.begin(), names.end());
 
-    return accumulate(names.begin(), names.end(), std::string("/"));
+    return join(names, "/");
 }
 
 

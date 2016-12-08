@@ -17,6 +17,10 @@ void help_message(){
     //todo;
 }
 
+std::string get_base_name(std::string name){
+    return name.substr(name.find_last_of("/") + 1);
+}
+
 int main(int argc, char* argv[]){
 
     // parse options with argparse
@@ -76,7 +80,7 @@ int main(int argc, char* argv[]){
 	return 1;
     }
     
-    ast->name = progam_name;
+    ast->name = get_base_name(progam_name);
     
     // create an empty namespace to start the linker method
     Group_namespace gn;
