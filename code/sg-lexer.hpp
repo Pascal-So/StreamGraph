@@ -22,7 +22,7 @@ class Lexer{
     const std::vector<token> v_empty;
     std::vector<token> v_error;
 
-    void print_error(std::string message);
+    void print_lexer_error(std::string message);
 
     
     // the lex_<type> functions return the lexed tokens if

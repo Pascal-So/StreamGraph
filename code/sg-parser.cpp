@@ -1,10 +1,6 @@
 #include<bits/stdc++.h>
 #include "sg-parser.hpp"
-
-
-void print_parse_error(std::string message){
-    std::cerr<<"PARSE ERROR: " << message << "\n";
-}
+#include "sg-helpers.hpp"
 
 std::string strip_bash_comments(std::string command){
     // this variable will be set to 0 while outside a
@@ -77,7 +73,7 @@ Group* parse(std::vector<token> tokens){
 	}
 	else if(t.first == "group_close"){
 	    if(current_stack.size() == 1){
-		print_parse_error("Found '}' but no group is currently open.");
+		print_error("Found '}' but no group is currently open.");
 		return 0;
 	    }
 	    current_stack.pop();
@@ -116,7 +112,7 @@ Group* parse(std::vector<token> tokens){
 	    }
 	    else if(node_data.first == "infile" || node_data.first == "outfile"){
 		if(current_stack.size() > 1){
-		    print_parse_error("Can't add file io nodes in a group.");
+		    print_error("Can't add file io nodes in a group.");
 		    return 0;
 		}
 		int file_number = stoi(node_data.second);
@@ -128,7 +124,7 @@ Group* parse(std::vector<token> tokens){
     }
 
     if(current_stack.size() > 1){
-	print_parse_error("Did you forget to close a group?");
+	print_error("Group \"" + current_stack.top()->name + "\" not closed.");
 	return 0;
     }
     

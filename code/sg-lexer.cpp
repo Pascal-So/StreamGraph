@@ -1,5 +1,6 @@
 #include<bits/stdc++.h>
 #include "sg-lexer.hpp"
+#include "sg-helpers.hpp"
 #define token std::pair<std::string, std::string> // {token type, token content}
 
 // Lexer class for the sg compiler
@@ -8,7 +9,7 @@
 // has a single public method (besides the constructor) that returns a
 // vector of tokens.
 
-// Pascal Sommer, November 2016
+// Pascal Sommer, 2016
 
 
 template <typename T>
@@ -49,13 +50,14 @@ std::vector<token> Lexer::lex(){
 
 	if(output == v_empty){
 	    // nothing could be matched, print error.
-	    print_error("Expected group, edge, node or comment");
+	    print_lexer_error("Expected group, edge, node or comment");
 	    output = v_error;
 	}
 
 	if(output == v_error){
 	    // an error has occurred while lexing.
 	    // Stop lexing any further.
+	    entire_program = output;
 	    break;
 	}
 	
@@ -70,8 +72,8 @@ std::vector<token> Lexer::lex(){
 
 // *********************  Private functions ************************
 
-void Lexer::print_error(std::string message){
-    std::cerr<<"\033[0;31mERROR\033[0m in " << scanner->get_position() << ": " << message <<"\n";
+void Lexer::print_lexer_error(std::string message){
+    print_error(message, scanner->get_position());
 }
 
 // the lex_<type> functions return the lexed tokens if
@@ -91,7 +93,7 @@ std::vector<token> Lexer::lex_node(){
 	// bash node
 	std::string command = scanner->get_rest_of_line();
 	if(command == ""){
-	    print_error("Expected bash command");
+	    print_lexer_error("Expected bash command");
 	    return v_error;
 	}
 	    
@@ -100,12 +102,12 @@ std::vector<token> Lexer::lex_node(){
 	// io node
 	std::string io_type = scanner->get_alphanumscore();
 	if(io_type != "infile" && io_type != "outfile"){
-	    print_error("Expected type of io node ('infile' or 'outfile')");
+	    print_lexer_error("Expected type of io node ('infile' or 'outfile')");
 	    return v_error;
 	}
 	std::string number = scanner->get_alphanumscore();
 	if(number == ""){
-	    print_error("Expected number of file");
+	    print_lexer_error("Expected number of file");
 	    return v_error;
 	}
 	out.push_back({io_type, number});
@@ -113,13 +115,13 @@ std::vector<token> Lexer::lex_node(){
 	// instance node
 	std::string name = scanner->get_alphanumscore();
 	if(name == ""){
-	    print_error("Expected group name");
+	    print_lexer_error("Expected group name");
 	    return v_error;
 	}
 
 	out.push_back({"instance", name});
     }else{
-	print_error("Expected ':', '/' or '-'");
+	print_lexer_error("Expected ':', '/' or '-'");
 	return v_error;
     }
 
@@ -132,7 +134,7 @@ std::vector<token> Lexer::lex_modifier(){
     if(scanner->match_string(".")){
 	mod = scanner->get_alphanumscore();
 	if(mod == ""){
-	    print_error("Expected node modifier");
+	    print_lexer_error("Expected node modifier");
 	    return v_error;
 	}
     }
@@ -146,7 +148,7 @@ std::vector<token> Lexer::lex_mod_name(std::string token_name){
 	
     std::string name = scanner->get_alphanumscore();
     if(name == ""){
-	print_error("Expected name of node");
+	print_lexer_error("Expected name of node");
 	return v_error;
     }
     out.push_back({token_name, name});
@@ -198,12 +200,12 @@ std::vector<token> Lexer::lex_group_header(){
     std::string name = scanner->get_alphanumscore();
 
     if(name == ""){
-	print_error("Expected group name");
+	print_lexer_error("Expected group name");
 	return v_error;
     }
 	
     if( ! scanner->match_string("{")){
-	print_error("Expected '{'");
+	print_lexer_error("Expected '{'");
 	return v_error;
     }
 

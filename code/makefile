@@ -1,6 +1,6 @@
 CC = g++
 CFLAGS = -Wall -Wextra -g -D_GLIBCXX_DEBUG -std=c++0x -O3
-INCLUDED_FILES = sg-lexer sg-scanner sg-parser sg-ast sg-linker sg-graph sg-bash-generator argparse
+INCLUDED_FILES = sg-lexer sg-scanner sg-parser sg-ast sg-linker sg-graph sg-bash-generator sg-helpers argparse
 OBJECTS = $(INCLUDED_FILES:=.o) sg.o
 
 all: sg
@@ -10,6 +10,9 @@ argparse.o: argparse.cpp argparse.hpp
 
 sg-lexer.o: sg-lexer.hpp sg-lexer.cpp
 	$(CC) $(CFLAGS) -c sg-lexer.cpp
+
+sg-helpers.o: sg-helpers.hpp sg-helpers.cpp
+	$(CC) $(CFLAGS) -c sg-helpers.cpp
 
 sg-graph.o: sg-graph.hpp sg-graph.cpp
 	$(CC) $(CFLAGS) -c sg-graph.cpp

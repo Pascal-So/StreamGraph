@@ -1,5 +1,6 @@
 #include<bits/stdc++.h>
 #include "sg-graph.hpp"
+#include "sg-helpers.hpp"
 
 // SG graph checks and optimizations
 
@@ -28,19 +29,12 @@
 
 
 // helper functions:
+void reset_visited_nodes(Group* ast_node);
+std::string format_group_stack(std::stack<Group*> stack);
+
 template<typename T, typename U>
 void vector_append(std::vector<T> &a, std::vector<U> &b);
 
-void print_warning(std::string message, std::string location);
-void print_error(std::string message, std::string location);
-
-void reset_visited_nodes(Group* ast_node);
-
-std::string join(std::vector<std::string> words, std::string delimiter);
-
-std::string format_group_stack(std::stack<Group*> stack);
-
-std::vector<std::string> str_split(std::string input);
 
 // check fro two groups of the same name
 bool check_duplicate_elements(Group* ast_node, std::string location);
@@ -632,18 +626,6 @@ bool check_inputs_to_nodes(Group* ast_node, std::string location){
 
 // helper functions -------------------------------------------------------
 
-
-// Different typenames are possible if a vector of derived
-// class pointers is appended to a vector of base class
-// pointers. This leads to ugly gcc error messages though
-// if the function is used incorrectly, so I might have
-// to change this.
-template<typename T, typename U>
-void vector_append(std::vector<T> &a, std::vector<U> &b){
-    a.insert(a.end(), b.begin(), b.end());
-}
-
-
 // only resets the nodes on one level.
 void reset_visited_nodes(Group* ast_node){
     std::vector<Node*> nodes = ast_node->list_all_nodes();
@@ -651,17 +633,6 @@ void reset_visited_nodes(Group* ast_node){
 	n->visited = false;
 	n->cycle_dfs_active = false;
     }
-}
-
-std::string join(std::vector<std::string> words, std::string delimiter){
-    std::string out = "";
-
-    size_t n = words.size();
-    for(size_t i = 0; i < n-1; ++i){
-	out += words[i] + delimiter;
-    }
-    out+=words[n-1];
-    return out;
 }
 
 std::string format_group_stack(std::stack<Group*> stack){
@@ -677,29 +648,12 @@ std::string format_group_stack(std::stack<Group*> stack){
     return join(names, "/");
 }
 
-
-std::vector<std::string> str_split(std::string input){
-    std::vector<std::string> out;
-    std::string tmp = "";
-
-    for(auto c:input){
-	if(c == ' ' || c == '\n' || c == '\t'){
-	    if(tmp != ""){
-		out.push_back(tmp);
-		tmp = "";
-	    }
-	}else{
-	    tmp+=c;
-	}
-    }
-    return out;
-}
-
-void print_warning(std::string message, std::string location){
-    std::cout<<"\033[0;33mWarning\033[0m in " << location << ": " << message <<"\n";
-}
-
-
-void print_error(std::string message, std::string location){
-    std::cout<<"\033[0;31mERROR\033[0m in " << location << ": " << message <<"\n";
+// Different typenames are possible if a vector of derived
+// class pointers is appended to a vector of base class
+// pointers. This leads to ugly gcc error messages though
+// if the function is used incorrectly, so I might have
+// to change this.
+template<typename T, typename U>
+void vector_append(std::vector<T> &a, std::vector<U> &b){    
+    a.insert(a.end(), b.begin(), b.end());
 }

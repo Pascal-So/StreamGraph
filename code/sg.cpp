@@ -5,6 +5,7 @@
 #include "sg-linker.hpp"
 #include "sg-graph.hpp"
 #include "sg-bash-generator.hpp"
+#include "sg-helpers.hpp"
 #include "core-script.cpp" // contains the sg core as string literal
 #include "argparse.hpp"
 #define token std::pair<std::string, std::string> // token type, token content
@@ -33,10 +34,6 @@ std::string get_date(){
     // convert `now` to string form
     std::string str_datetime = ctime(&now);
     return str_datetime;
-}
-
-void print_error(std::string message){
-    std::cerr<<"\033[0;31mERROR\033[0m: " << message <<"\n";
 }
 
 void compilation_failed(){
@@ -84,31 +81,38 @@ int main(int argc, char* argv[]){
 	return 1;
     }
 
-    std::string progam_name= parsed_options[0];
+    std::string program_path= parsed_options[0];
     std::string output_file;
     if (parsed_options.find(1)!=parsed_options.end()){
 	// output path was given
 	output_file = parsed_options[1];
     }else{
-	if(progam_name.substr(progam_name.length() -3) == ".sg"){
-	    output_file = progam_name.substr(0, progam_name.length() - 3);
+	if(program_path.substr(program_path.length() -3) == ".sg"){
+	    output_file = program_path.substr(0, program_path.length() - 3);
 	}else{
-	    output_file = progam_name;
+	    output_file = program_path;
 	}
 	output_file += ".sh";
     }
 
-    std::ifstream infile (progam_path);
+    std::string program_name = get_base_name(program_path);
+
+    std::ifstream infile (program_path);
     if( ! infile.is_open()){
-	print_error("Couldn't open file " + progam_name + ".");
+	print_error("Couldn't open file " + program_path + ".");
 	compilation_failed();
 	return 1;
     }
     
-    Lexer l (progam_name, infile);
+    Lexer l (program_path, infile);
 
     // lex the source code
     auto result = l.lex();
+
+    if(result.back().first=="ERROR"){
+	compilation_failed();
+	return 1;
+    }
 
     // parse the token stream
     Group* ast = parse(result);
@@ -117,7 +121,7 @@ int main(int argc, char* argv[]){
 	return 1;
     }
     
-    ast->name = get_base_name(progam_name);
+    ast->name = program_name;
     
     // create an empty namespace to start the linker method
     Group_namespace gn;
