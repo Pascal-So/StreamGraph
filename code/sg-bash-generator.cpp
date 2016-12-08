@@ -2,8 +2,6 @@
 #include<ctime>
 #include "sg-bash-generator.hpp"
 
-std::string version_number = "0.5";
-
 
 std::string sub_group(Group* ast_node);
 
@@ -231,7 +229,7 @@ std::string sub_group(Group* ast_node){
 }
 
 
-std::string print_header(std::string name, std::string sg_core,
+std::string print_header(std::string name, std::string sg_core, std::string version_number,
 			 bool has_stdin, bool has_stdout,
 			 int input_files, int output_files){
     time_t now = time(0);
@@ -275,7 +273,7 @@ std::string print_footer(bool has_stdin){
     return out;
 }
 
-std::string generate_bash_script(Group* ast_root, std::string sg_core){
+std::string generate_bash_script(Group* ast_root, std::string sg_core, std::string version_number){
     std::string out = "";
 
     int nr_input_files = 0;
@@ -291,7 +289,8 @@ std::string generate_bash_script(Group* ast_root, std::string sg_core){
 
     bool has_stdin = (ast_root->input_node != 0) && ast_root->input_node->node_type == STDIO_NODE;
     bool has_stdout = (ast_root->output_node != 0) && ast_root->output_node->node_type == STDIO_NODE;
-    out += print_header(ast_root->name, sg_core, has_stdin, has_stdout, nr_input_files, nr_output_files);
+    out += print_header(ast_root->name, sg_core, version_number,
+			has_stdin, has_stdout, nr_input_files, nr_output_files);
 
     ast_root->name = "main";
     out += sub_group(ast_root);

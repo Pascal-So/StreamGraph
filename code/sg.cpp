@@ -13,8 +13,13 @@
 // The sg compiler
 // Pascal Sommer, 2016
 
+std::string version_number = "0.5";
+
 void help_message(){
-    //todo;
+    std::cerr<<"StreamGraph compiler " << version_number << "\n";
+    std::cerr<<"Copyright (C) 2016 Pascal Sommer\n";
+    std::cerr<<"\n";
+    std::cerr<<"Usage: sg infile [-o outfile]\n";
 }
 
 std::string get_base_name(std::string name){
@@ -44,7 +49,7 @@ int main(int argc, char* argv[]){
     argparse_options.push_back({1, "o", "output-file", true});
 
     // display the help message
-    argparse_options.push_back({99, "", "help", false});
+    argparse_options.push_back({99, "h", "help", false});
     
     auto parsed_options = argparse(argparse_options, argc, argv);
 
@@ -113,7 +118,7 @@ int main(int argc, char* argv[]){
     }
 
     // generate the bash script
-    std::string bash_script = generate_bash_script(ast, sg_core);
+    std::string bash_script = generate_bash_script(ast, sg_core, version_number);
 
     std::ofstream out_file_stream(output_file);
     if( ! out_file_stream.is_open() ){
