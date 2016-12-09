@@ -18,7 +18,7 @@ std::string version_number = "0.5";
 
 void info_message(){
     std::cerr<<"StreamGraph compiler " << version_number << "\n";
-    std::cerr<<"Copyright (C) 2016 Pascal Sommer\n";
+    std::cerr<<"Pascal Sommer, 2016\n";
 }
 
 void help_message(){
@@ -58,8 +58,8 @@ int main(int argc, char* argv[]){
 
     // exit if argparse returned an error
     if(parsed_options.find(-1) != parsed_options.end()){
-        help_message();
 	std::cerr<<"\n";
+        help_message();
 	compilation_failed();
         return 1;
     }
@@ -73,10 +73,9 @@ int main(int argc, char* argv[]){
     }
 
     if (parsed_options.find(0)==parsed_options.end()){
-	std::cerr<<"No input file given.\n";
+	print_error("No input file given.");
 	std::cerr<<"\n";
 	help_message();
-	std::cerr<<"\n";
 	compilation_failed();
 	return 1;
     }
