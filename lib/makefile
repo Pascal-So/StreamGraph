@@ -14,18 +14,18 @@ obj/bashminify.min.sh: pull_bashminify
 	$(MAKE) -C bashminify
 	cp bashminify/bashminify.min.sh obj/bashminify.min.sh
 
-pull_argparse: argparse
+pull_argparse: argparse/.git
 	cd argparse; git pull;
 
-pull_bashminify: bashminify
+pull_bashminify: bashminify/.git
 	cd bashminify; git pull;
 
-argparse:
+argparse/.git:
 	if [ ! -d argparse -o ! -d argparse/.git ]; then \
 		rm -rf argparse; \
 		git clone https://github.com/Pascal-So/argparse.git; fi
 
-bashminify:
+bashminify/.git:
 	if [ ! -d bashminify -o ! -d bashminify/.git ]; then \
 		rm -rf bashminify; \
 		git clone https://github.com/Pascal-So/Bash-minify.git bashminify; fi
