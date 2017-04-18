@@ -19,7 +19,7 @@
 class Scanner{
     std::string buffer;
     std::string file_path;
-    std::ifstream& infile;
+    std::istream& infile;
     
     
     // has filestream reached eof? if this is true, buffer could still be non-
@@ -48,7 +48,7 @@ public:
     std::string get_rest_of_line();
     std::string get_position();
     
-    Scanner(std::string file_path, std::ifstream & infile);
+    Scanner(std::string file_path, std::istream & infile);
 };
 
 

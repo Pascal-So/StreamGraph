@@ -30,7 +30,7 @@ bool is_digit(char c){
 
 // ******************* Public functions **********************
 
-Scanner::Scanner(std::string file_path, std::ifstream &infile): file_path(file_path), infile(infile)
+Scanner::Scanner(std::string file_path, std::istream &infile): file_path(file_path), infile(infile)
 {
     line_number = 1;
     line_character_number = 0;

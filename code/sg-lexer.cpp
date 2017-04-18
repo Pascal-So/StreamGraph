@@ -21,7 +21,7 @@ void vector_append(std::vector<T> &v1, const std::vector<T> &v2){
 
 // ****************** Public functions *****************************
 
-Lexer::Lexer(std::string file_path, std::ifstream & infile): file_path(file_path){
+Lexer::Lexer(std::string file_path, std::istream & infile): file_path(file_path){
     scanner = new Scanner(file_path, infile);
     v_error.push_back({"ERROR", "ERROR"});
 }

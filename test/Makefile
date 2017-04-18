@@ -78,7 +78,7 @@ sgcode :
 sg_unittest.o : $(GTEST_HEADERS) $(USER_DIR)/test/sg_unittest.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/test/sg_unittest.cpp
 
-SG_LIBS = $(USER_DIR)/code/sg-helpers.o
+SG_LIBS = $(USER_DIR)/code/sg-helpers.o $(USER_DIR)/code/sg-scanner.o
 
 sg_unittest : $(SG_LIBS) sg_unittest.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@
