@@ -22,10 +22,13 @@ std::string join(std::vector<std::string> words, std::string delimiter){
     std::string out = "";
 
     size_t n = words.size();
-    for(size_t i = 0; i < n-1; ++i){
-	out += words[i] + delimiter;
+    for(size_t i = 0; i < n; ++i){
+	out += words[i];
+	if(i < n-1){
+	    out += delimiter;
+	}
     }
-    out+=words[n-1];
+
     return out;
 }
 
@@ -43,6 +46,10 @@ std::vector<std::string> str_split(std::string input){
 	}else{
 	    tmp+=c;
 	}
+    }
+    if(tmp != ""){
+	out.push_back(tmp);
+	tmp = "";
     }
     return out;
 }
