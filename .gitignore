@@ -7,3 +7,4 @@ sg
 core-script.cpp
 core.min.sh
 lib/obj/*
+sg_unittest
